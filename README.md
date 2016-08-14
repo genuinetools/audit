@@ -3,7 +3,7 @@
 [![Travis CI](https://travis-ci.org/jfrazelle/audit.svg?branch=master)](https://travis-ci.org/jfrazelle/audit)
 
 For checking what collaborators, hooks, and deploy keys you have added on all
-your GitHub repositorys. Because nobody has enough RAM in their brain to
+your GitHub repositories. Because nobody has enough RAM in their brain to
 remember this stuff for 100+ repos.
 
 ## Usage
