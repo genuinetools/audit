@@ -1,6 +1,6 @@
 # audit
 
-[![Travis CI](https://travis-ci.org/jfrazelle/audit.svg?branch=master)](https://travis-ci.org/jfrazelle/audit)
+[![Travis CI](https://travis-ci.org/jessfraz/audit.svg?branch=master)](https://travis-ci.org/jessfraz/audit)
 
 For checking what collaborators, hooks, and deploy keys you have added on all
 your GitHub repositories. Because nobody has enough RAM in their brain to
@@ -21,23 +21,23 @@ audit - v0.1.0
 
 ```console
 $ audit --token 12345
-jfrazelle/apk-file ->
+jessfraz/apk-file ->
         Hooks (1):
-                travis - active:true (https://api.github.com/repos/jfrazelle/apk-file/hooks/8426605)
+                travis - active:true (https://api.github.com/repos/jessfraz/apk-file/hooks/8426605)
 --
 
-jfrazelle/apparmor-docs ->
+jessfraz/apparmor-docs ->
         Keys (1):
-                jenkins - ro:false (https://api.github.com/repos/jfrazelle/apparmor-docs/keys/18549738)
+                jenkins - ro:false (https://api.github.com/repos/jessfraz/apparmor-docs/keys/18549738)
 --
 
-jfrazelle/bane ->
+jessfraz/bane ->
         Hooks (1):
-                travis - active:true (https://api.github.com/repos/jfrazelle/bane/hooks/6178025)
+                travis - active:true (https://api.github.com/repos/jessfraz/bane/hooks/6178025)
 --
 
-jfrazelle/battery ->
+jessfraz/battery ->
         Hooks (1):
-                travis - active:true (https://api.github.com/repos/jfrazelle/battery/hooks/8388640)
+                travis - active:true (https://api.github.com/repos/jessfraz/battery/hooks/8388640)
 --
 ```
