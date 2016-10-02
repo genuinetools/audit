@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"strings"
@@ -96,7 +97,6 @@ func main() {
 
 func getRepositories(client *github.Client, page, perPage int) error {
 	opt := &github.RepositoryListOptions{
-		Affiliation: "owner",
 		ListOptions: github.ListOptions{
 			Page:    page,
 			PerPage: perPage,
@@ -122,21 +122,31 @@ func getRepositories(client *github.Client, page, perPage int) error {
 	return getRepositories(client, page, perPage)
 }
 
+// handleRepo will return nil error if the user does not have access to something.
 func handleRepo(client *github.Client, repo *github.Repository) error {
 	opt := &github.ListOptions{
 		PerPage: 100,
 	}
-	collabs, _, err := client.Repositories.ListCollaborators(*repo.Owner.Login, *repo.Name, opt)
+	collabs, resp, err := client.Repositories.ListCollaborators(*repo.Owner.Login, *repo.Name, opt)
+	if resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusForbidden {
+		return nil
+	}
 	if err != nil {
 		return err
 	}
 
-	keys, _, err := client.Repositories.ListKeys(*repo.Owner.Login, *repo.Name, opt)
+	keys, resp, err := client.Repositories.ListKeys(*repo.Owner.Login, *repo.Name, opt)
+	if resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusForbidden {
+		return nil
+	}
 	if err != nil {
 		return err
 	}
 
-	hooks, _, err := client.Repositories.ListHooks(*repo.Owner.Login, *repo.Name, opt)
+	hooks, resp, err := client.Repositories.ListHooks(*repo.Owner.Login, *repo.Name, opt)
+	if resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusForbidden {
+		return nil
+	}
 	if err != nil {
 		return err
 	}
