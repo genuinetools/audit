@@ -44,6 +44,7 @@ jessfraz/battery ->
                 travis - active:true (https://api.github.com/repos/jessfraz/battery/hooks/8388640)
         Protected Branches (1): master
 --
+
 jessfraz/irssi ->
 	Collaborators (3): tianon, jessfraz, docker-library-bot
 	Hooks (1):
