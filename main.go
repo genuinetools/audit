@@ -151,8 +151,19 @@ func handleRepo(client *github.Client, repo *github.Repository) error {
 		return err
 	}
 
+	branches, _, err := client.Repositories.ListBranches(*repo.Owner.Login, *repo.Name, opt)
+	if err != nil {
+		return err
+	}
+	protectedBranches := []string{}
+	for _, branch := range branches {
+		if *branch.Protection.Enabled {
+			protectedBranches = append(protectedBranches, *branch.Name)
+		}
+	}
+
 	// only print whole status if we have more that one collaborator
-	if len(collabs) <= 1 && len(keys) < 1 && len(hooks) < 1 {
+	if len(collabs) <= 1 && len(keys) < 1 && len(hooks) < 1 && len(protectedBranches) < 1 {
 		return nil
 	}
 
@@ -180,6 +191,10 @@ func handleRepo(client *github.Client, repo *github.Repository) error {
 			hstr = append(hstr, fmt.Sprintf("\t\t%s - active:%t (%s)", *h.Name, *h.Active, *h.URL))
 		}
 		output += fmt.Sprintf("\tHooks (%d):\n%s\n", len(hstr), strings.Join(hstr, "\n"))
+	}
+
+	if len(protectedBranches) > 0 {
+		output += fmt.Sprintf("\tProtected Branches (%d): %s\n", len(protectedBranches), strings.Join(protectedBranches, ", "))
 	}
 	fmt.Printf("%s--\n\n", output)
 
