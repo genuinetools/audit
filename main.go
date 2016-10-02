@@ -80,14 +80,6 @@ func main() {
 	// Create the github client.
 	client := github.NewClient(tc)
 
-	// Get the authenticated user, the empty string being passed let's the GitHub
-	// API know we want ourself.
-	/*	user, _, err := client.Users.Get("")
-		if err != nil {
-			logrus.Fatal(err)
-		}
-		username := *user.Login*/
-
 	page := 1
 	perPage := 20
 	if err := getRepositories(client, page, perPage); err != nil {
