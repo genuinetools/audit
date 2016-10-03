@@ -7,6 +7,9 @@ you have added on all your GitHub repositories. This also scans all an
 organizations repos you have permission to view.
 Because nobody has enough RAM in their brain to remember this stuff for 100+ repos.
 
+Check out [jessfraz/pepper](https://github.com/jessfraz/pepper) for setting all your GitHub repos master branches 
+to be protected. Even has settings for organizations and a dry-run flag for the paranoid.
+
 ## Usage
 
 ```console
