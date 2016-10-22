@@ -27,6 +27,7 @@ var (
 
 	debug   bool
 	version bool
+	owner   bool
 )
 
 func init() {
@@ -36,6 +37,7 @@ func init() {
 	flag.BoolVar(&version, "version", false, "print version and exit")
 	flag.BoolVar(&version, "v", false, "print version and exit (shorthand)")
 	flag.BoolVar(&debug, "d", false, "run in debug mode")
+	flag.BoolVar(&owner, "owner", false, "only audit repos the token owner owns")
 
 	flag.Usage = func() {
 		fmt.Fprint(os.Stderr, fmt.Sprintf(BANNER, VERSION))
@@ -82,13 +84,20 @@ func main() {
 
 	page := 1
 	perPage := 20
-	if err := getRepositories(client, page, perPage); err != nil {
+	var affiliation string
+	if owner {
+		affiliation = "owner"
+	} else {
+		affiliation = "owner,collaborator,organization_member"
+	}
+	if err := getRepositories(client, page, perPage, affiliation); err != nil {
 		logrus.Fatal(err)
 	}
 }
 
-func getRepositories(client *github.Client, page, perPage int) error {
+func getRepositories(client *github.Client, page, perPage int, affiliation string) error {
 	opt := &github.RepositoryListOptions{
+		Affiliation: affiliation,
 		ListOptions: github.ListOptions{
 			Page:    page,
 			PerPage: perPage,
@@ -111,7 +120,7 @@ func getRepositories(client *github.Client, page, perPage int) error {
 	}
 
 	page = resp.NextPage
-	return getRepositories(client, page, perPage)
+	return getRepositories(client, page, perPage, affiliation)
 }
 
 // handleRepo will return nil error if the user does not have access to something.
