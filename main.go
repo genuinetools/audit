@@ -83,7 +83,7 @@ func main() {
 	client := github.NewClient(tc)
 
 	page := 1
-	perPage := 20
+	perPage := 100
 	var affiliation string
 	if owner {
 		affiliation = "owner"
