@@ -14,11 +14,11 @@ to be protected. Even has settings for organizations and a dry-run flag for the 
 
 #### Binaries
 
-- **darwin** [386](https://github.com/jessfraz/audit/releases/download/v0.1.2/audit-darwin-386) / [amd64](https://github.com/jessfraz/audit/releases/download/v0.1.2/audit-darwin-amd64)
-- **freebsd** [386](https://github.com/jessfraz/audit/releases/download/v0.1.2/audit-freebsd-386) / [amd64](https://github.com/jessfraz/audit/releases/download/v0.1.2/audit-freebsd-amd64)
-- **linux** [386](https://github.com/jessfraz/audit/releases/download/v0.1.2/audit-linux-386) / [amd64](https://github.com/jessfraz/audit/releases/download/v0.1.2/audit-linux-amd64) / [arm](https://github.com/jessfraz/audit/releases/download/v0.1.2/audit-linux-arm) / [arm64](https://github.com/jessfraz/audit/releases/download/v0.1.2/audit-linux-arm64)
-- **solaris** [amd64](https://github.com/jessfraz/audit/releases/download/v0.1.2/audit-solaris-amd64)
-- **windows** [386](https://github.com/jessfraz/audit/releases/download/v0.1.2/audit-windows-386) / [amd64](https://github.com/jessfraz/audit/releases/download/v0.1.2/audit-windows-amd64)
+- **darwin** [386](https://github.com/jessfraz/audit/releases/download/v0.1.3/audit-darwin-386) / [amd64](https://github.com/jessfraz/audit/releases/download/v0.1.3/audit-darwin-amd64)
+- **freebsd** [386](https://github.com/jessfraz/audit/releases/download/v0.1.3/audit-freebsd-386) / [amd64](https://github.com/jessfraz/audit/releases/download/v0.1.3/audit-freebsd-amd64)
+- **linux** [386](https://github.com/jessfraz/audit/releases/download/v0.1.3/audit-linux-386) / [amd64](https://github.com/jessfraz/audit/releases/download/v0.1.3/audit-linux-amd64) / [arm](https://github.com/jessfraz/audit/releases/download/v0.1.3/audit-linux-arm) / [arm64](https://github.com/jessfraz/audit/releases/download/v0.1.3/audit-linux-arm64)
+- **solaris** [amd64](https://github.com/jessfraz/audit/releases/download/v0.1.3/audit-solaris-amd64)
+- **windows** [386](https://github.com/jessfraz/audit/releases/download/v0.1.3/audit-windows-386) / [amd64](https://github.com/jessfraz/audit/releases/download/v0.1.3/audit-windows-amd64)
 
 #### Via Go
 
@@ -30,7 +30,7 @@ $ go get github.com/jessfraz/audit
 
 ```console
 $ audit -h
-audit - v0.1.2
+audit - v0.1.3
   -d    run in debug mode
   -owner
         only audit repos the token owner owns
