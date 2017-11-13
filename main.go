@@ -13,41 +13,40 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/google/go-github/github"
+	"github.com/jessfraz/audit/version"
 )
 
 const (
 	// BANNER is what is printed for help/info output.
 	BANNER = "audit - %s\n"
-	// VERSION is the binary version.
-	VERSION = "v0.1.0"
 )
 
 var (
 	token string
 
-	debug   bool
-	version bool
-	owner   bool
+	debug bool
+	vrsn  bool
+	owner bool
 )
 
 func init() {
 	// parse flags
 	flag.StringVar(&token, "token", os.Getenv("GITHUB_TOKEN"), "GitHub API token")
 
-	flag.BoolVar(&version, "version", false, "print version and exit")
-	flag.BoolVar(&version, "v", false, "print version and exit (shorthand)")
+	flag.BoolVar(&vrsn, "version", false, "print version and exit")
+	flag.BoolVar(&vrsn, "v", false, "print version and exit (shorthand)")
 	flag.BoolVar(&debug, "d", false, "run in debug mode")
 	flag.BoolVar(&owner, "owner", false, "only audit repos the token owner owns")
 
 	flag.Usage = func() {
-		fmt.Fprint(os.Stderr, fmt.Sprintf(BANNER, VERSION))
+		fmt.Fprint(os.Stderr, fmt.Sprintf(BANNER, version.VERSION))
 		flag.PrintDefaults()
 	}
 
 	flag.Parse()
 
-	if version {
-		fmt.Printf("%s", VERSION)
+	if vrsn {
+		fmt.Printf("audit version %s, build %s", version.VERSION, version.GITCOMMIT)
 		os.Exit(0)
 	}
 
@@ -90,6 +89,7 @@ func main() {
 	} else {
 		affiliation = "owner,collaborator,organization_member"
 	}
+	logrus.Debugf("Getting repositories...")
 	if err := getRepositories(client, page, perPage, affiliation); err != nil {
 		logrus.Fatal(err)
 	}
@@ -109,6 +109,7 @@ func getRepositories(client *github.Client, page, perPage int, affiliation strin
 	}
 
 	for _, repo := range repos {
+		logrus.Debugf("Handling repo %s...", repo.FullName)
 		if err := handleRepo(client, repo); err != nil {
 			logrus.Warn(err)
 		}
