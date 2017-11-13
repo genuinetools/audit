@@ -109,7 +109,7 @@ func getRepositories(client *github.Client, page, perPage int, affiliation strin
 	}
 
 	for _, repo := range repos {
-		logrus.Debugf("Handling repo %s...", repo.FullName)
+		logrus.Debugf("Handling repo %s...", *repo.FullName)
 		if err := handleRepo(client, repo); err != nil {
 			logrus.Warn(err)
 		}
@@ -159,7 +159,7 @@ func handleRepo(client *github.Client, repo *github.Repository) error {
 	}
 	protectedBranches := []string{}
 	for _, branch := range branches {
-		if *branch.Protection.Enabled {
+		if branch.Protection != nil && *branch.Protection.Enabled {
 			protectedBranches = append(protectedBranches, *branch.Name)
 		}
 	}
