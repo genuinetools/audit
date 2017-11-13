@@ -25,7 +25,8 @@
     provider: releases
     api_key:
       secure: "itPAWkQpVnxfS1XpwLAHk81Mcg4YOPwt1KTaO0Ere3XcOluYzNoAQXKVp2nTb73lL50jsZd4Mpj7PBdfAjesynv4CDz/AunNMbRT/MdpPT7y1WRo1D6h+8fYwgLRAZF2C5IOtnPszsjR7Mh/xaVsVUETWfOmgBDgtpt2gOwaADpEoaTwcr3ikCh1voT7LHzeQsb/xTJZHPw6751MrmXTxjJQvBvhAXyibL7JWRGCwqHNvIM0LpdiVVfbCybmAWFN7KR/+niK1nDbaJ+N2u0D4olPRovmRaGYHhbeGHhvV6x/gqBH8995M0TsW0DFbM5FBPXHBOdqPxLum4m4OTQ8cNh8vdTxtJ2n3zgye9Mum9UlKKaEY1M1T11pI5SxjBH6pXOLPK0wOEDEAReSEWP0xMMjTeP3InNumVriP8Fs7/Xnj9QakUESWMpi8sHAN5RbMnTpobzlfwgDbxNwCpc5ScPS6otHTEKgsMu5zzeQ+a8VhtTccr9DeNZKMZG/odzQnPxNxi+KAKhMckhzyIEv9yfmPf4I5Smat2/3O2H/GW9WcN4aJF3P6LEbYqYHn2zVvmZr5EtbowrA4LJDQWgkZZUiGx6P6fFpQIuO7jzjYZBbh7ouTU3gDAs5kLeG1MVqD9K2FAvYE5ZQ2iyeO/zUBLvBh8kUalzikhO4w/AcXR0="
-    go: 1.9.x
+    on:
+      go: 1.9.x
     file:
       - cross/audit-linux-amd64.md5
       - cross/audit-windows-386.sha256
