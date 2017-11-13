@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"net/http"
@@ -103,7 +104,7 @@ func getRepositories(client *github.Client, page, perPage int, affiliation strin
 			PerPage: perPage,
 		},
 	}
-	repos, resp, err := client.Repositories.List("", opt)
+	repos, resp, err := client.Repositories.List(context.Background(), "", opt)
 	if err != nil {
 		return err
 	}
@@ -129,7 +130,7 @@ func handleRepo(client *github.Client, repo *github.Repository) error {
 	opt := &github.ListOptions{
 		PerPage: 100,
 	}
-	collabs, resp, err := client.Repositories.ListCollaborators(*repo.Owner.Login, *repo.Name, opt)
+	collabs, resp, err := client.Repositories.ListCollaborators(context.Background(), *repo.Owner.Login, *repo.Name, &github.ListCollaboratorsOptions{ListOptions: *opt})
 	if resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusForbidden {
 		return nil
 	}
@@ -137,7 +138,7 @@ func handleRepo(client *github.Client, repo *github.Repository) error {
 		return err
 	}
 
-	keys, resp, err := client.Repositories.ListKeys(*repo.Owner.Login, *repo.Name, opt)
+	keys, resp, err := client.Repositories.ListKeys(context.Background(), *repo.Owner.Login, *repo.Name, opt)
 	if resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusForbidden {
 		return nil
 	}
@@ -145,7 +146,7 @@ func handleRepo(client *github.Client, repo *github.Repository) error {
 		return err
 	}
 
-	hooks, resp, err := client.Repositories.ListHooks(*repo.Owner.Login, *repo.Name, opt)
+	hooks, resp, err := client.Repositories.ListHooks(context.Background(), *repo.Owner.Login, *repo.Name, opt)
 	if resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusForbidden {
 		return nil
 	}
@@ -153,13 +154,13 @@ func handleRepo(client *github.Client, repo *github.Repository) error {
 		return err
 	}
 
-	branches, _, err := client.Repositories.ListBranches(*repo.Owner.Login, *repo.Name, opt)
+	branches, _, err := client.Repositories.ListBranches(context.Background(), *repo.Owner.Login, *repo.Name, opt)
 	if err != nil {
 		return err
 	}
 	protectedBranches := []string{}
 	for _, branch := range branches {
-		if branch.Protection != nil && *branch.Protection.Enabled {
+		if branch.GetProtected() {
 			protectedBranches = append(protectedBranches, *branch.Name)
 		}
 	}
