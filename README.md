@@ -30,15 +30,21 @@ $ go get github.com/jessfraz/audit
 
 ```console
 $ audit -h
-audit - v0.1.3
-  -d    run in debug mode
-  -owner
-        only audit repos the token owner owns
-  -token string
-        GitHub API token
-  -v    print version and exit (shorthand)
-  -version
-        print version and exit
+                 _ _ _
+  __ _ _   _  __| (_) |_
+ / _` | | | |/ _` | | __|
+| (_| | |_| | (_| | | |_
+ \__,_|\__,_|\__,_|_|\__|
+
+ Auditing what collaborators, hooks, and deploy keys you have added on all your GitHub repositories.
+ Version: v0.1.3
+ Build: ffe8aac
+
+   -d       run in debug mode
+  -owner    only audit repos the token owner owns
+  -token    GitHub API token (or env var GITHUB_TOKEN)
+  -v        print version and exit (shorthand)
+  -version  print version and exit
 ```
 
 ```console
