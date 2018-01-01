@@ -12,9 +12,9 @@ import (
 
 	"golang.org/x/oauth2"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/google/go-github/github"
 	"github.com/jessfraz/audit/version"
+	"github.com/sirupsen/logrus"
 )
 
 const (
