@@ -29,7 +29,7 @@ const (
  Version: %s
  Build: %s
 
- `
+`
 )
 
 var (
@@ -170,6 +170,7 @@ func handleRepo(ctx context.Context, client *github.Client, repo *github.Reposit
 		return err
 	}
 	protectedBranches := []string{}
+	unprotectedBranches := []string{}
 	for _, branch := range branches {
 		// we must get the individual branch for the branch protection to work
 		b, _, err := client.Repositories.GetBranch(ctx, *repo.Owner.Login, *repo.Name, branch.GetName())
@@ -178,11 +179,13 @@ func handleRepo(ctx context.Context, client *github.Client, repo *github.Reposit
 		}
 		if b.GetProtected() {
 			protectedBranches = append(protectedBranches, b.GetName())
+		} else {
+			unprotectedBranches = append(unprotectedBranches, b.GetName())
 		}
 	}
 
 	// only print whole status if we have more that one collaborator
-	if len(collabs) <= 1 && len(keys) < 1 && len(hooks) < 1 && len(protectedBranches) < 1 {
+	if len(collabs) <= 1 && len(keys) < 1 && len(hooks) < 1 && len(protectedBranches) < 1 && len(unprotectedBranches) < 1 {
 		return nil
 	}
 
@@ -215,6 +218,11 @@ func handleRepo(ctx context.Context, client *github.Client, repo *github.Reposit
 	if len(protectedBranches) > 0 {
 		output += fmt.Sprintf("\tProtected Branches (%d): %s\n", len(protectedBranches), strings.Join(protectedBranches, ", "))
 	}
+
+	if len(unprotectedBranches) > 0 {
+		output += fmt.Sprintf("\tUnprotected Branches (%d): %s\n", len(unprotectedBranches), strings.Join(unprotectedBranches, ", "))
+	}
+
 	fmt.Printf("%s--\n\n", output)
 
 	return nil

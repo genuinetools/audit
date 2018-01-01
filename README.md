@@ -40,7 +40,7 @@ $ audit -h
  Version: v0.2.0
  Build: ffe8aac
 
-   -d       run in debug mode
+  -d        run in debug mode
   -owner    only audit repos the token owner owns
   -token    GitHub API token (or env var GITHUB_TOKEN)
   -v        print version and exit (shorthand)
@@ -58,6 +58,7 @@ jessfraz/apk-file ->
 jessfraz/apparmor-docs ->
         Keys (1):
                 jenkins - ro:false (https://api.github.com/repos/jessfraz/apparmor-docs/keys/18549738)
+        Unprotected Branches (1): master
 --
 
 jessfraz/bane ->
@@ -70,6 +71,7 @@ jessfraz/battery ->
         Hooks (1):
                 travis - active:true (https://api.github.com/repos/jessfraz/battery/hooks/8388640)
         Protected Branches (1): master
+        Unprotected Branches (1): WIP
 --
 
 jessfraz/irssi ->
