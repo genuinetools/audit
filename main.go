@@ -32,7 +32,7 @@ var (
 
 func init() {
 	// parse flags
-	flag.StringVar(&token, "token", os.Getenv("GITHUB_TOKEN"), "GitHub API token")
+	flag.StringVar(&token, "token", os.Getenv("GITHUB_TOKEN"), "GitHub API token (or env var GITHUB_TOKEN)")
 
 	flag.BoolVar(&vrsn, "version", false, "print version and exit")
 	flag.BoolVar(&vrsn, "v", false, "print version and exit (shorthand)")
