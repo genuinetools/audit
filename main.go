@@ -19,7 +19,17 @@ import (
 
 const (
 	// BANNER is what is printed for help/info output.
-	BANNER = "audit - %s\n"
+	BANNER = `                 _ _ _
+  __ _ _   _  __| (_) |_
+ / _` + "`" + ` | | | |/ _` + "`" + ` | | __|
+| (_| | |_| | (_| | | |_
+ \__,_|\__,_|\__,_|_|\__|
+
+ Auditing what collaborators, hooks, and deploy keys you have added on all your GitHub repositories.
+ Version: %s
+ Build: %s
+
+ `
 )
 
 var (
@@ -40,7 +50,7 @@ func init() {
 	flag.BoolVar(&owner, "owner", false, "only audit repos the token owner owns")
 
 	flag.Usage = func() {
-		fmt.Fprint(os.Stderr, fmt.Sprintf(BANNER, version.VERSION))
+		fmt.Fprint(os.Stderr, fmt.Sprintf(BANNER, version.VERSION, version.GITCOMMIT))
 		flag.PrintDefaults()
 	}
 
