@@ -83,15 +83,16 @@ func main() {
 		}
 	}()
 
+	ctx := context.Background()
+
 	// Create the http client.
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: token},
 	)
-	tc := oauth2.NewClient(oauth2.NoContext, ts)
+	tc := oauth2.NewClient(ctx, ts)
 
 	// Create the github client.
 	client := github.NewClient(tc)
-
 	page := 1
 	perPage := 100
 	var affiliation string
@@ -101,12 +102,12 @@ func main() {
 		affiliation = "owner,collaborator,organization_member"
 	}
 	logrus.Debugf("Getting repositories...")
-	if err := getRepositories(client, page, perPage, affiliation); err != nil {
+	if err := getRepositories(ctx, client, page, perPage, affiliation); err != nil {
 		logrus.Fatal(err)
 	}
 }
 
-func getRepositories(client *github.Client, page, perPage int, affiliation string) error {
+func getRepositories(ctx context.Context, client *github.Client, page, perPage int, affiliation string) error {
 	opt := &github.RepositoryListOptions{
 		Affiliation: affiliation,
 		ListOptions: github.ListOptions{
@@ -114,14 +115,14 @@ func getRepositories(client *github.Client, page, perPage int, affiliation strin
 			PerPage: perPage,
 		},
 	}
-	repos, resp, err := client.Repositories.List(context.Background(), "", opt)
+	repos, resp, err := client.Repositories.List(ctx, "", opt)
 	if err != nil {
 		return err
 	}
 
 	for _, repo := range repos {
 		logrus.Debugf("Handling repo %s...", *repo.FullName)
-		if err := handleRepo(client, repo); err != nil {
+		if err := handleRepo(ctx, client, repo); err != nil {
 			logrus.Warn(err)
 		}
 	}
@@ -132,15 +133,15 @@ func getRepositories(client *github.Client, page, perPage int, affiliation strin
 	}
 
 	page = resp.NextPage
-	return getRepositories(client, page, perPage, affiliation)
+	return getRepositories(ctx, client, page, perPage, affiliation)
 }
 
 // handleRepo will return nil error if the user does not have access to something.
-func handleRepo(client *github.Client, repo *github.Repository) error {
+func handleRepo(ctx context.Context, client *github.Client, repo *github.Repository) error {
 	opt := &github.ListOptions{
 		PerPage: 100,
 	}
-	collabs, resp, err := client.Repositories.ListCollaborators(context.Background(), *repo.Owner.Login, *repo.Name, &github.ListCollaboratorsOptions{ListOptions: *opt})
+	collabs, resp, err := client.Repositories.ListCollaborators(ctx, *repo.Owner.Login, *repo.Name, &github.ListCollaboratorsOptions{ListOptions: *opt})
 	if resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusForbidden {
 		return nil
 	}
@@ -148,7 +149,7 @@ func handleRepo(client *github.Client, repo *github.Repository) error {
 		return err
 	}
 
-	keys, resp, err := client.Repositories.ListKeys(context.Background(), *repo.Owner.Login, *repo.Name, opt)
+	keys, resp, err := client.Repositories.ListKeys(ctx, *repo.Owner.Login, *repo.Name, opt)
 	if resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusForbidden {
 		return nil
 	}
@@ -156,7 +157,7 @@ func handleRepo(client *github.Client, repo *github.Repository) error {
 		return err
 	}
 
-	hooks, resp, err := client.Repositories.ListHooks(context.Background(), *repo.Owner.Login, *repo.Name, opt)
+	hooks, resp, err := client.Repositories.ListHooks(ctx, *repo.Owner.Login, *repo.Name, opt)
 	if resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusForbidden {
 		return nil
 	}
@@ -164,14 +165,19 @@ func handleRepo(client *github.Client, repo *github.Repository) error {
 		return err
 	}
 
-	branches, _, err := client.Repositories.ListBranches(context.Background(), *repo.Owner.Login, *repo.Name, opt)
+	branches, _, err := client.Repositories.ListBranches(ctx, *repo.Owner.Login, *repo.Name, opt)
 	if err != nil {
 		return err
 	}
 	protectedBranches := []string{}
 	for _, branch := range branches {
-		if branch.GetProtected() {
-			protectedBranches = append(protectedBranches, *branch.Name)
+		// we must get the individual branch for the branch protection to work
+		b, _, err := client.Repositories.GetBranch(ctx, *repo.Owner.Login, *repo.Name, branch.GetName())
+		if err != nil {
+			return err
+		}
+		if b.GetProtected() {
+			protectedBranches = append(protectedBranches, b.GetName())
 		}
 	}
 
