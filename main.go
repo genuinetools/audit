@@ -141,6 +141,15 @@ func handleRepo(ctx context.Context, client *github.Client, repo *github.Reposit
 	opt := &github.ListOptions{
 		PerPage: 100,
 	}
+
+	teams, resp, err := client.Repositories.ListTeams(ctx, *repo.Owner.Login, *repo.Name, opt)
+	if resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusForbidden {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
 	collabs, resp, err := client.Repositories.ListCollaborators(ctx, *repo.Owner.Login, *repo.Name, &github.ListCollaboratorsOptions{ListOptions: *opt})
 	if resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusForbidden {
 		return nil
@@ -192,11 +201,39 @@ func handleRepo(ctx context.Context, client *github.Client, repo *github.Reposit
 	output := fmt.Sprintf("%s -> \n", *repo.FullName)
 
 	if len(collabs) > 1 {
-		logins := []string{}
+		push := []string{}
+		pull := []string{}
+		admin := []string{}
 		for _, c := range collabs {
-			logins = append(logins, *c.Login)
+			userTeams := []github.Team{}
+			for _, t := range teams {
+				isMember, resp, err := client.Organizations.GetTeamMembership(ctx, *t.ID, *c.Login)
+				if resp.StatusCode != http.StatusNotFound && resp.StatusCode != http.StatusForbidden && err == nil && *isMember.State == "active" {
+					userTeams = append(userTeams, *t)
+				}
+			}
+
+			perms := *c.Permissions
+
+			switch {
+			case perms["admin"]:
+				permTeams := []string{}
+				for _, t := range userTeams {
+					if *t.Permission == "admin" {
+						permTeams = append(permTeams, *t.Name)
+					}
+				}
+				admin = append(admin, fmt.Sprintf("\t\t\t%s (teams: %s)", *c.Login, strings.Join(permTeams, ", ")))
+			case perms["push"]:
+				push = append(push, fmt.Sprintf("\t\t\t%s", *c.Login))
+			case perms["pull"]:
+				pull = append(pull, fmt.Sprintf("\t\t\t%s", *c.Login))
+			}
 		}
-		output += fmt.Sprintf("\tCollaborators (%d): %s\n", len(logins), strings.Join(logins, ", "))
+		output += fmt.Sprintf("\tCollaborators (%d):\n", len(collabs))
+		output += fmt.Sprintf("\t\tAdmin (%d):\n%s\n", len(admin), strings.Join(admin, "\n"))
+		output += fmt.Sprintf("\t\tWrite (%d):\n%s\n", len(push), strings.Join(push, "\n"))
+		output += fmt.Sprintf("\t\tRead (%d):\n%s\n", len(pull), strings.Join(pull, "\n"))
 	}
 
 	if len(keys) > 0 {
