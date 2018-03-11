@@ -7,7 +7,7 @@ ENV GOPATH /go
 RUN	apk add --no-cache \
 	ca-certificates
 
-COPY . /go/src/github.com/jessfraz/audit
+COPY . /go/src/github.com/genuinetools/audit
 
 RUN set -x \
 	&& apk add --no-cache --virtual .build-deps \
@@ -16,7 +16,7 @@ RUN set -x \
 		libc-dev \
 		libgcc \
 		make \
-	&& cd /go/src/github.com/jessfraz/audit \
+	&& cd /go/src/github.com/genuinetools/audit \
 	&& make static \
 	&& mv audit /usr/bin/audit \
 	&& apk del .build-deps \
