@@ -20,12 +20,6 @@
   revision = "53e6ce116135b80d037921a7fdd5138cf32d7a8a"
 
 [[projects]]
-  name = "github.com/jessfraz/audit"
-  packages = ["version"]
-  revision = "24167982ebb0d2cfe667a6613f26a8845205ca56"
-  version = "v0.3.0"
-
-[[projects]]
   name = "github.com/sirupsen/logrus"
   packages = ["."]
   revision = "d682213848ed68c0a260ca37d6dd5ace8423f5ba"
@@ -81,6 +75,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "ab32e2db85d4c7c76cb7a7f013d3bbd5d75bda0c05759dd14d132de670e406b1"
+  inputs-digest = "30dc77fa137081976d63be9e7a1d87ec697d7df427b770febf907237449664e6"
   solver-name = "gps-cdcl"
   solver-version = 1
