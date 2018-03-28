@@ -34,6 +34,7 @@ const (
 
 var (
 	token string
+	repo  string
 
 	debug bool
 	vrsn  bool
@@ -43,6 +44,7 @@ var (
 func init() {
 	// parse flags
 	flag.StringVar(&token, "token", os.Getenv("GITHUB_TOKEN"), "GitHub API token (or env var GITHUB_TOKEN)")
+	flag.StringVar(&repo, "repo", "", "specific repo to test (e.g. 'genuinetools/audit'")
 
 	flag.BoolVar(&vrsn, "version", false, "print version and exit")
 	flag.BoolVar(&vrsn, "v", false, "print version and exit (shorthand)")
@@ -102,12 +104,12 @@ func main() {
 		affiliation = "owner,collaborator,organization_member"
 	}
 	logrus.Debugf("Getting repositories...")
-	if err := getRepositories(ctx, client, page, perPage, affiliation); err != nil {
+	if err := getRepositories(ctx, client, page, perPage, affiliation, repo); err != nil {
 		logrus.Fatal(err)
 	}
 }
 
-func getRepositories(ctx context.Context, client *github.Client, page, perPage int, affiliation string) error {
+func getRepositories(ctx context.Context, client *github.Client, page, perPage int, affiliation string, searchRepo string) error {
 	opt := &github.RepositoryListOptions{
 		Affiliation: affiliation,
 		ListOptions: github.ListOptions{
@@ -115,6 +117,34 @@ func getRepositories(ctx context.Context, client *github.Client, page, perPage i
 			PerPage: perPage,
 		},
 	}
+	optSearch := &github.SearchOptions{
+		Sort:  "forks",
+		Order: "desc",
+		ListOptions: github.ListOptions{
+			Page:    1,
+			PerPage: 1,
+		},
+	}
+
+	if searchRepo != "" {
+		search := strings.Split(searchRepo, "/")
+		org := search[0]
+		repo := search[1]
+		searchString := fmt.Sprintf("org:%s in:name %s", org, repo)
+		repos, _, err := client.Search.Repositories(ctx, searchString, optSearch)
+		if err != nil {
+			return err
+		}
+		foundRepo := repos.Repositories[0]
+		logrus.Debugf("Handling repo %s...", *foundRepo.FullName)
+		if err := handleRepo(ctx, client, &foundRepo); err != nil {
+			logrus.Warn(err)
+		}
+
+		// Return early
+		return nil
+	}
+
 	repos, resp, err := client.Repositories.List(ctx, "", opt)
 	if err != nil {
 		return err
@@ -133,7 +163,7 @@ func getRepositories(ctx context.Context, client *github.Client, page, perPage i
 	}
 
 	page = resp.NextPage
-	return getRepositories(ctx, client, page, perPage, affiliation)
+	return getRepositories(ctx, client, page, perPage, affiliation, searchRepo)
 }
 
 // handleRepo will return nil error if the user does not have access to something.
