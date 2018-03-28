@@ -44,7 +44,7 @@ var (
 func init() {
 	// parse flags
 	flag.StringVar(&token, "token", os.Getenv("GITHUB_TOKEN"), "GitHub API token (or env var GITHUB_TOKEN)")
-	flag.StringVar(&repo, "repo", "", "specific repo to test (e.g. 'genuinetools/audit'")
+	flag.StringVar(&repo, "repo", "", "specific repo to test (e.g. 'genuinetools/audit')")
 
 	flag.BoolVar(&vrsn, "version", false, "print version and exit")
 	flag.BoolVar(&vrsn, "v", false, "print version and exit (shorthand)")
