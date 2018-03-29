@@ -130,10 +130,13 @@ func getRepositories(ctx context.Context, client *github.Client, page, perPage i
 		search := strings.Split(searchRepo, "/")
 		org := search[0]
 		repo := search[1]
-		searchString := fmt.Sprintf("org:%s in:name %s", org, repo)
+		searchString := fmt.Sprintf("org:%s in:name %s fork:true", org, repo)
 		repos, _, err := client.Search.Repositories(ctx, searchString, optSearch)
 		if err != nil {
 			return err
+		}
+		if len(repos.Repositories) == 0 {
+			return fmt.Errorf("repo not found")
 		}
 		foundRepo := repos.Repositories[0]
 		logrus.Debugf("Handling repo %s...", *foundRepo.FullName)
