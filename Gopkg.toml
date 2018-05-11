@@ -19,7 +19,14 @@
 #  name = "github.com/x/y"
 #  version = "2.4.0"
 
+[prune]
+  non-go = true
+  unused-packages = true
 
 [[override]]
   name = "github.com/Sirupsen/logrus"
   source = "github.com/sirupsen/logrus"
+
+[[constraint]]
+  name = "github.com/google/go-github"
+  branch = "master"
