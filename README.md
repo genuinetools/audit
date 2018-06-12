@@ -14,11 +14,11 @@ to be protected. Even has settings for organizations and a dry-run flag for the 
 
 #### Binaries
 
-- **darwin** [386](https://github.com/genuinetools/audit/releases/download/v0.4.1/audit-darwin-386) / [amd64](https://github.com/genuinetools/audit/releases/download/v0.4.1/audit-darwin-amd64)
-- **freebsd** [386](https://github.com/genuinetools/audit/releases/download/v0.4.1/audit-freebsd-386) / [amd64](https://github.com/genuinetools/audit/releases/download/v0.4.1/audit-freebsd-amd64)
-- **linux** [386](https://github.com/genuinetools/audit/releases/download/v0.4.1/audit-linux-386) / [amd64](https://github.com/genuinetools/audit/releases/download/v0.4.1/audit-linux-amd64) / [arm](https://github.com/genuinetools/audit/releases/download/v0.4.1/audit-linux-arm) / [arm64](https://github.com/genuinetools/audit/releases/download/v0.4.1/audit-linux-arm64)
-- **solaris** [amd64](https://github.com/genuinetools/audit/releases/download/v0.4.1/audit-solaris-amd64)
-- **windows** [386](https://github.com/genuinetools/audit/releases/download/v0.4.1/audit-windows-386) / [amd64](https://github.com/genuinetools/audit/releases/download/v0.4.1/audit-windows-amd64)
+- **darwin** [386](https://github.com/genuinetools/audit/releases/download/v0.4.2/audit-darwin-386) / [amd64](https://github.com/genuinetools/audit/releases/download/v0.4.2/audit-darwin-amd64)
+- **freebsd** [386](https://github.com/genuinetools/audit/releases/download/v0.4.2/audit-freebsd-386) / [amd64](https://github.com/genuinetools/audit/releases/download/v0.4.2/audit-freebsd-amd64)
+- **linux** [386](https://github.com/genuinetools/audit/releases/download/v0.4.2/audit-linux-386) / [amd64](https://github.com/genuinetools/audit/releases/download/v0.4.2/audit-linux-amd64) / [arm](https://github.com/genuinetools/audit/releases/download/v0.4.2/audit-linux-arm) / [arm64](https://github.com/genuinetools/audit/releases/download/v0.4.2/audit-linux-arm64)
+- **solaris** [amd64](https://github.com/genuinetools/audit/releases/download/v0.4.2/audit-solaris-amd64)
+- **windows** [386](https://github.com/genuinetools/audit/releases/download/v0.4.2/audit-windows-386) / [amd64](https://github.com/genuinetools/audit/releases/download/v0.4.2/audit-windows-amd64)
 
 #### Via Go
 
@@ -37,7 +37,7 @@ $ audit -h
  \__,_|\__,_|\__,_|_|\__|
 
  Auditing what collaborators, hooks, and deploy keys you have added on all your GitHub repositories.
- Version: v0.4.1
+ Version: v0.4.2
  Build: a55701b
 
   -d    run in debug mode
