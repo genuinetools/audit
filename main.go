@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 
 	"golang.org/x/oauth2"
 
@@ -105,6 +106,10 @@ func main() {
 	}
 	logrus.Debugf("Getting repositories...")
 	if err := getRepositories(ctx, client, page, perPage, affiliation, repo); err != nil {
+		if v, ok := err.(*github.RateLimitError); ok {
+			logrus.Fatalf("%s Limit: %d; Remaining: %d; Retry After: %s", v.Message, v.Rate.Limit, v.Rate.Remaining, time.Until(v.Rate.Reset.Time).String())
+		}
+
 		logrus.Fatal(err)
 	}
 }
@@ -123,7 +128,7 @@ func getRepositories(ctx context.Context, client *github.Client, page, perPage i
 		resp  *github.Response
 		err   error
 	)
-	if searchRepo == "" {
+	if len(searchRepo) < 1 {
 		// Get all the repos.
 		repos, resp, err = client.Repositories.List(ctx, "", opt)
 		if err != nil {
@@ -133,10 +138,17 @@ func getRepositories(ctx context.Context, client *github.Client, page, perPage i
 		// Find the one repo.
 		repos, err = searchRepos(ctx, client, searchRepo)
 	}
+	if err != nil {
+		return err
+	}
 
 	for _, repo := range repos {
 		logrus.Debugf("Handling repo %s...", repo.GetFullName())
 		if err := handleRepo(ctx, client, repo); err != nil {
+			if len(searchRepo) > 0 {
+				return err
+			}
+
 			logrus.Warn(err)
 		}
 	}
@@ -166,6 +178,10 @@ func searchRepos(ctx context.Context, client *github.Client, searchRepo string) 
 		return nil, err
 	}
 
+	if len(repos.Repositories) < 1 {
+		return nil, fmt.Errorf("found no repositories matching: %s", searchRepo)
+	}
+
 	r := []*github.Repository{}
 	for _, repo := range repos.Repositories {
 		r = append(r, &repo)
@@ -180,7 +196,11 @@ func handleRepo(ctx context.Context, client *github.Client, repo *github.Reposit
 	}
 
 	teams, resp, err := client.Repositories.ListTeams(ctx, repo.GetOwner().GetLogin(), repo.GetName(), opt)
-	if resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusForbidden {
+	if resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusForbidden || err != nil {
+		if _, ok := err.(*github.RateLimitError); ok {
+			return err
+		}
+
 		return nil
 	}
 	if err != nil {
@@ -188,7 +208,11 @@ func handleRepo(ctx context.Context, client *github.Client, repo *github.Reposit
 	}
 
 	collabs, resp, err := client.Repositories.ListCollaborators(ctx, repo.GetOwner().GetLogin(), repo.GetName(), &github.ListCollaboratorsOptions{ListOptions: *opt})
-	if resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusForbidden {
+	if resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusForbidden || err != nil {
+		if _, ok := err.(*github.RateLimitError); ok {
+			return err
+		}
+
 		return nil
 	}
 	if err != nil {
@@ -196,7 +220,11 @@ func handleRepo(ctx context.Context, client *github.Client, repo *github.Reposit
 	}
 
 	keys, resp, err := client.Repositories.ListKeys(ctx, repo.GetOwner().GetLogin(), repo.GetName(), opt)
-	if resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusForbidden {
+	if resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusForbidden || err != nil {
+		if _, ok := err.(*github.RateLimitError); ok {
+			return err
+		}
+
 		return nil
 	}
 	if err != nil {
@@ -204,7 +232,11 @@ func handleRepo(ctx context.Context, client *github.Client, repo *github.Reposit
 	}
 
 	hooks, resp, err := client.Repositories.ListHooks(ctx, repo.GetOwner().GetLogin(), repo.GetName(), opt)
-	if resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusForbidden {
+	if resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusForbidden || err != nil {
+		if _, ok := err.(*github.RateLimitError); ok {
+			return err
+		}
+
 		return nil
 	}
 	if err != nil {
