@@ -117,6 +117,40 @@ func getRepositories(ctx context.Context, client *github.Client, page, perPage i
 			PerPage: perPage,
 		},
 	}
+
+	var (
+		repos []*github.Repository
+		resp  *github.Response
+		err   error
+	)
+	if searchRepo == "" {
+		// Get all the repos.
+		repos, resp, err = client.Repositories.List(ctx, "", opt)
+		if err != nil {
+			return err
+		}
+	} else {
+		// Find the one repo.
+		repos, err = searchRepos(ctx, client, searchRepo)
+	}
+
+	for _, repo := range repos {
+		logrus.Debugf("Handling repo %s...", repo.GetFullName())
+		if err := handleRepo(ctx, client, repo); err != nil {
+			logrus.Warn(err)
+		}
+	}
+
+	// Return early if we are on the last page.
+	if resp == nil || page == resp.LastPage || resp.NextPage == 0 {
+		return nil
+	}
+
+	page = resp.NextPage
+	return getRepositories(ctx, client, page, perPage, affiliation, searchRepo)
+}
+
+func searchRepos(ctx context.Context, client *github.Client, searchRepo string) ([]*github.Repository, error) {
 	optSearch := &github.SearchOptions{
 		Sort:  "forks",
 		Order: "desc",
@@ -126,47 +160,17 @@ func getRepositories(ctx context.Context, client *github.Client, page, perPage i
 		},
 	}
 
-	if searchRepo != "" {
-		search := strings.Split(searchRepo, "/")
-		org := search[0]
-		repo := search[1]
-		searchString := fmt.Sprintf("org:%s in:name %s fork:true", org, repo)
-		repos, _, err := client.Search.Repositories(ctx, searchString, optSearch)
-		if err != nil {
-			return err
-		}
-		if len(repos.Repositories) == 0 {
-			return fmt.Errorf("repo not found")
-		}
-		foundRepo := repos.Repositories[0]
-		logrus.Debugf("Handling repo %s...", *foundRepo.FullName)
-		if err := handleRepo(ctx, client, &foundRepo); err != nil {
-			logrus.Warn(err)
-		}
-
-		// Return early
-		return nil
-	}
-
-	repos, resp, err := client.Repositories.List(ctx, "", opt)
+	search := strings.SplitN(searchRepo, "/", 2)
+	repos, _, err := client.Search.Repositories(ctx, fmt.Sprintf("org:%s in:name %s fork:true", search[0], search[1]), optSearch)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	for _, repo := range repos {
-		logrus.Debugf("Handling repo %s...", *repo.FullName)
-		if err := handleRepo(ctx, client, repo); err != nil {
-			logrus.Warn(err)
-		}
+	r := []*github.Repository{}
+	for _, repo := range repos.Repositories {
+		r = append(r, &repo)
 	}
-
-	// Return early if we are on the last page.
-	if page == resp.LastPage || resp.NextPage == 0 {
-		return nil
-	}
-
-	page = resp.NextPage
-	return getRepositories(ctx, client, page, perPage, affiliation, searchRepo)
+	return r, nil
 }
 
 // handleRepo will return nil error if the user does not have access to something.
@@ -175,7 +179,7 @@ func handleRepo(ctx context.Context, client *github.Client, repo *github.Reposit
 		PerPage: 100,
 	}
 
-	teams, resp, err := client.Repositories.ListTeams(ctx, *repo.Owner.Login, *repo.Name, opt)
+	teams, resp, err := client.Repositories.ListTeams(ctx, repo.GetOwner().GetLogin(), repo.GetName(), opt)
 	if resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusForbidden {
 		return nil
 	}
@@ -183,7 +187,7 @@ func handleRepo(ctx context.Context, client *github.Client, repo *github.Reposit
 		return err
 	}
 
-	collabs, resp, err := client.Repositories.ListCollaborators(ctx, *repo.Owner.Login, *repo.Name, &github.ListCollaboratorsOptions{ListOptions: *opt})
+	collabs, resp, err := client.Repositories.ListCollaborators(ctx, repo.GetOwner().GetLogin(), repo.GetName(), &github.ListCollaboratorsOptions{ListOptions: *opt})
 	if resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusForbidden {
 		return nil
 	}
@@ -191,7 +195,7 @@ func handleRepo(ctx context.Context, client *github.Client, repo *github.Reposit
 		return err
 	}
 
-	keys, resp, err := client.Repositories.ListKeys(ctx, *repo.Owner.Login, *repo.Name, opt)
+	keys, resp, err := client.Repositories.ListKeys(ctx, repo.GetOwner().GetLogin(), repo.GetName(), opt)
 	if resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusForbidden {
 		return nil
 	}
@@ -199,7 +203,7 @@ func handleRepo(ctx context.Context, client *github.Client, repo *github.Reposit
 		return err
 	}
 
-	hooks, resp, err := client.Repositories.ListHooks(ctx, *repo.Owner.Login, *repo.Name, opt)
+	hooks, resp, err := client.Repositories.ListHooks(ctx, repo.GetOwner().GetLogin(), repo.GetName(), opt)
 	if resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusForbidden {
 		return nil
 	}
@@ -207,7 +211,7 @@ func handleRepo(ctx context.Context, client *github.Client, repo *github.Reposit
 		return err
 	}
 
-	branches, _, err := client.Repositories.ListBranches(ctx, *repo.Owner.Login, *repo.Name, opt)
+	branches, _, err := client.Repositories.ListBranches(ctx, repo.GetOwner().GetLogin(), repo.GetName(), opt)
 	if err != nil {
 		return err
 	}
@@ -215,7 +219,7 @@ func handleRepo(ctx context.Context, client *github.Client, repo *github.Reposit
 	unprotectedBranches := []string{}
 	for _, branch := range branches {
 		// we must get the individual branch for the branch protection to work
-		b, _, err := client.Repositories.GetBranch(ctx, *repo.Owner.Login, *repo.Name, branch.GetName())
+		b, _, err := client.Repositories.GetBranch(ctx, repo.GetOwner().GetLogin(), repo.GetName(), branch.GetName())
 		if err != nil {
 			return err
 		}
@@ -231,7 +235,7 @@ func handleRepo(ctx context.Context, client *github.Client, repo *github.Reposit
 		return nil
 	}
 
-	output := fmt.Sprintf("%s -> \n", *repo.FullName)
+	output := fmt.Sprintf("%s -> \n", repo.GetFullName())
 
 	if len(collabs) > 1 {
 		push := []string{}
@@ -240,27 +244,27 @@ func handleRepo(ctx context.Context, client *github.Client, repo *github.Reposit
 		for _, c := range collabs {
 			userTeams := []github.Team{}
 			for _, t := range teams {
-				isMember, resp, err := client.Organizations.GetTeamMembership(ctx, *t.ID, *c.Login)
-				if resp.StatusCode != http.StatusNotFound && resp.StatusCode != http.StatusForbidden && err == nil && *isMember.State == "active" {
+				isMember, resp, err := client.Organizations.GetTeamMembership(ctx, t.GetID(), c.GetLogin())
+				if resp.StatusCode != http.StatusNotFound && resp.StatusCode != http.StatusForbidden && err == nil && isMember.GetState() == "active" {
 					userTeams = append(userTeams, *t)
 				}
 			}
 
-			perms := *c.Permissions
+			perms := c.GetPermissions()
 
 			switch {
 			case perms["admin"]:
 				permTeams := []string{}
 				for _, t := range userTeams {
-					if *t.Permission == "admin" {
-						permTeams = append(permTeams, *t.Name)
+					if t.GetPermission() == "admin" {
+						permTeams = append(permTeams, t.GetName())
 					}
 				}
-				admin = append(admin, fmt.Sprintf("\t\t\t%s (teams: %s)", *c.Login, strings.Join(permTeams, ", ")))
+				admin = append(admin, fmt.Sprintf("\t\t\t%s (teams: %s)", c.GetLogin(), strings.Join(permTeams, ", ")))
 			case perms["push"]:
-				push = append(push, fmt.Sprintf("\t\t\t%s", *c.Login))
+				push = append(push, fmt.Sprintf("\t\t\t%s", c.GetLogin()))
 			case perms["pull"]:
-				pull = append(pull, fmt.Sprintf("\t\t\t%s", *c.Login))
+				pull = append(pull, fmt.Sprintf("\t\t\t%s", c.GetLogin()))
 			}
 		}
 		output += fmt.Sprintf("\tCollaborators (%d):\n", len(collabs))
@@ -272,7 +276,7 @@ func handleRepo(ctx context.Context, client *github.Client, repo *github.Reposit
 	if len(keys) > 0 {
 		kstr := []string{}
 		for _, k := range keys {
-			kstr = append(kstr, fmt.Sprintf("\t\t%s - ro:%t (%s)", *k.Title, *k.ReadOnly, *k.URL))
+			kstr = append(kstr, fmt.Sprintf("\t\t%s - ro:%t (%s)", k.GetTitle(), k.GetReadOnly(), k.GetURL()))
 		}
 		output += fmt.Sprintf("\tKeys (%d):\n%s\n", len(kstr), strings.Join(kstr, "\n"))
 	}
@@ -280,7 +284,7 @@ func handleRepo(ctx context.Context, client *github.Client, repo *github.Reposit
 	if len(hooks) > 0 {
 		hstr := []string{}
 		for _, h := range hooks {
-			hstr = append(hstr, fmt.Sprintf("\t\t%s - active:%t (%s)", *h.Name, *h.Active, *h.URL))
+			hstr = append(hstr, fmt.Sprintf("\t\t%s - active:%t (%s)", h.GetName(), h.GetActive(), h.GetURL()))
 		}
 		output += fmt.Sprintf("\tHooks (%d):\n%s\n", len(hstr), strings.Join(hstr, "\n"))
 	}
@@ -292,6 +296,23 @@ func handleRepo(ctx context.Context, client *github.Client, repo *github.Reposit
 	if len(unprotectedBranches) > 0 {
 		output += fmt.Sprintf("\tUnprotected Branches (%d): %s\n", len(unprotectedBranches), strings.Join(unprotectedBranches, ", "))
 	}
+
+	repo, _, err = client.Repositories.Get(ctx, repo.GetOwner().GetLogin(), repo.GetName())
+	if err != nil {
+		return err
+	}
+
+	mergeMethods := "\tMerge Methods:"
+	if repo.GetAllowMergeCommit() {
+		mergeMethods += " mergeCommit"
+	}
+	if repo.GetAllowSquashMerge() {
+		mergeMethods += " squash"
+	}
+	if repo.GetAllowRebaseMerge() {
+		mergeMethods += " rebase"
+	}
+	output += mergeMethods + "\n"
 
 	fmt.Printf("%s--\n\n", output)
 
