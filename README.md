@@ -38,14 +38,18 @@ $ audit -h
 
  Auditing what collaborators, hooks, and deploy keys you have added on all your GitHub repositories.
  Version: v0.4.0
- Build: ffe8aac
+ Build: a55701b
 
-  -d        run in debug mode
-  -owner    only audit repos the token owner owns
-  -repo    	specific repo to test (e.g. 'genuinetools/audit')
-  -token    GitHub API token (or env var GITHUB_TOKEN)
-  -v        print version and exit (shorthand)
-  -version  print version and exit
+  -d    run in debug mode
+  -owner
+        only audit repos the token owner owns
+  -repo string
+        specific repo to test (e.g. 'genuinetools/audit')
+  -token string
+        GitHub API token (or env var GITHUB_TOKEN)
+  -v    print version and exit (shorthand)
+  -version
+        print version and exit
 ```
 
 ```console
