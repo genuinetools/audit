@@ -1,62 +1,58 @@
----
-  language: go
-  sudo: false
-  notifications:
-    email: true
-  go:
-    - 1.x
-    - tip
-  matrix:
-    allow_failures:
-      - go: tip
-    fast_finish: true
-  install:
-    - go get github.com/golang/lint/golint
-    - go get honnef.co/go/tools/cmd/staticcheck
-  script:
-    - make all
-    - make cover
-    - make release
-  after_success:
-    - bash <(curl -s https://codecov.io/bash)
-  deploy:
-    provider: releases
-    api_key:
-      secure: "itPAWkQpVnxfS1XpwLAHk81Mcg4YOPwt1KTaO0Ere3XcOluYzNoAQXKVp2nTb73lL50jsZd4Mpj7PBdfAjesynv4CDz/AunNMbRT/MdpPT7y1WRo1D6h+8fYwgLRAZF2C5IOtnPszsjR7Mh/xaVsVUETWfOmgBDgtpt2gOwaADpEoaTwcr3ikCh1voT7LHzeQsb/xTJZHPw6751MrmXTxjJQvBvhAXyibL7JWRGCwqHNvIM0LpdiVVfbCybmAWFN7KR/+niK1nDbaJ+N2u0D4olPRovmRaGYHhbeGHhvV6x/gqBH8995M0TsW0DFbM5FBPXHBOdqPxLum4m4OTQ8cNh8vdTxtJ2n3zgye9Mum9UlKKaEY1M1T11pI5SxjBH6pXOLPK0wOEDEAReSEWP0xMMjTeP3InNumVriP8Fs7/Xnj9QakUESWMpi8sHAN5RbMnTpobzlfwgDbxNwCpc5ScPS6otHTEKgsMu5zzeQ+a8VhtTccr9DeNZKMZG/odzQnPxNxi+KAKhMckhzyIEv9yfmPf4I5Smat2/3O2H/GW9WcN4aJF3P6LEbYqYHn2zVvmZr5EtbowrA4LJDQWgkZZUiGx6P6fFpQIuO7jzjYZBbh7ouTU3gDAs5kLeG1MVqD9K2FAvYE5ZQ2iyeO/zUBLvBh8kUalzikhO4w/AcXR0="
-    file:
-      - cross/audit-linux-amd64.md5
-      - cross/audit-windows-386.sha256
-      - cross/audit-linux-arm
-      - cross/audit-darwin-amd64.md5
-      - cross/audit-darwin-amd64
-      - cross/audit-solaris-amd64.md5
-      - cross/audit-linux-arm64.sha256
-      - cross/audit-linux-arm.sha256
-      - cross/audit-linux-386.sha256
-      - cross/audit-darwin-386.md5
-      - cross/audit-windows-386.md5
-      - cross/audit-freebsd-amd64.md5
-      - cross/audit-linux-arm64.md5
-      - cross/audit-linux-arm64
-      - cross/audit-freebsd-amd64.sha256
-      - cross/audit-freebsd-386.md5
-      - cross/audit-linux-amd64.sha256
-      - cross/audit-linux-386.md5
-      - cross/audit-freebsd-386
-      - cross/audit-solaris-amd64.sha256
-      - cross/audit-windows-amd64
-      - cross/audit-windows-amd64.md5
-      - cross/audit-windows-amd64.sha256
-      - cross/audit-linux-arm.md5
-      - cross/audit-darwin-386.sha256
-      - cross/audit-darwin-amd64.sha256
-      - cross/audit-windows-386
-      - cross/audit-solaris-amd64
-      - cross/audit-darwin-386
-      - cross/audit-linux-386
-      - cross/audit-freebsd-amd64
-      - cross/audit-freebsd-386.sha256
-      - cross/audit-linux-amd64
-    skip_cleanup: true
-    on:
-      tags: true
+language: go
+sudo: false
+go:
+  - 1.10.x
+before_install:
+  - go get github.com/golang/lint/golint
+  - go get honnef.co/go/tools/cmd/staticcheck
+jobs:
+  include:
+    - script: make all
+    - stage: Run Test Coverage
+      script: make cover
+      after_success: bash <(curl -s https://codecov.io/bash)
+    - stage: Build Release
+      script:
+        - make release
+        - echo "Deploying to GitHub releases ..."
+      deploy:
+        provider: releases
+        file:
+          - cross/audit-linux-amd64.md5
+          - cross/audit-windows-386.sha256
+          - cross/audit-linux-arm
+          - cross/audit-darwin-amd64.md5
+          - cross/audit-darwin-amd64
+          - cross/audit-solaris-amd64.md5
+          - cross/audit-linux-arm64.sha256
+          - cross/audit-linux-arm.sha256
+          - cross/audit-linux-386.sha256
+          - cross/audit-darwin-386.md5
+          - cross/audit-windows-386.md5
+          - cross/audit-freebsd-amd64.md5
+          - cross/audit-linux-arm64.md5
+          - cross/audit-linux-arm64
+          - cross/audit-freebsd-amd64.sha256
+          - cross/audit-freebsd-386.md5
+          - cross/audit-linux-amd64.sha256
+          - cross/audit-linux-386.md5
+          - cross/audit-freebsd-386
+          - cross/audit-solaris-amd64.sha256
+          - cross/audit-windows-amd64
+          - cross/audit-windows-amd64.md5
+          - cross/audit-windows-amd64.sha256
+          - cross/audit-linux-arm.md5
+          - cross/audit-darwin-386.sha256
+          - cross/audit-darwin-amd64.sha256
+          - cross/audit-windows-386
+          - cross/audit-solaris-amd64
+          - cross/audit-darwin-386
+          - cross/audit-linux-386
+          - cross/audit-freebsd-amd64
+          - cross/audit-freebsd-386.sha256
+          - cross/audit-linux-amd64
+        skip_cleanup: true
+        on:
+          tags: true
+        api_key:
+          secure: "itPAWkQpVnxfS1XpwLAHk81Mcg4YOPwt1KTaO0Ere3XcOluYzNoAQXKVp2nTb73lL50jsZd4Mpj7PBdfAjesynv4CDz/AunNMbRT/MdpPT7y1WRo1D6h+8fYwgLRAZF2C5IOtnPszsjR7Mh/xaVsVUETWfOmgBDgtpt2gOwaADpEoaTwcr3ikCh1voT7LHzeQsb/xTJZHPw6751MrmXTxjJQvBvhAXyibL7JWRGCwqHNvIM0LpdiVVfbCybmAWFN7KR/+niK1nDbaJ+N2u0D4olPRovmRaGYHhbeGHhvV6x/gqBH8995M0TsW0DFbM5FBPXHBOdqPxLum4m4OTQ8cNh8vdTxtJ2n3zgye9Mum9UlKKaEY1M1T11pI5SxjBH6pXOLPK0wOEDEAReSEWP0xMMjTeP3InNumVriP8Fs7/Xnj9QakUESWMpi8sHAN5RbMnTpobzlfwgDbxNwCpc5ScPS6otHTEKgsMu5zzeQ+a8VhtTccr9DeNZKMZG/odzQnPxNxi+KAKhMckhzyIEv9yfmPf4I5Smat2/3O2H/GW9WcN4aJF3P6LEbYqYHn2zVvmZr5EtbowrA4LJDQWgkZZUiGx6P6fFpQIuO7jzjYZBbh7ouTU3gDAs5kLeG1MVqD9K2FAvYE5ZQ2iyeO/zUBLvBh8kUalzikhO4w/AcXR0="
