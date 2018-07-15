@@ -1,6 +1,8 @@
 # audit
 
-[![Travis CI](https://travis-ci.org/genuinetools/audit.svg?branch=master)](https://travis-ci.org/genuinetools/audit)
+[![Travis CI](https://img.shields.io/travis/genuinetools/audit.svg?style=for-the-badge)](https://travis-ci.org/genuinetools/audit)
+[![GoDoc](https://img.shields.io/badge/godoc-reference-5272B4.svg?style=for-the-badge)](https://godoc.org/github.com/genuinetools/audit)
+[![Github All Releases](https://img.shields.io/github/downloads/genuinetools/audit/total.svg?style=for-the-badge)](https://github.com/genuinetools/audit/releases)
 
 For checking what collaborators, hooks, deploy keys, and protected branches
 you have added on all your GitHub repositories. This also scans all an
@@ -14,15 +16,11 @@ to be protected. Pepper even has settings for organizations and a dry-run flag f
 
 #### Binaries
 
-- **darwin** [386](https://github.com/genuinetools/audit/releases/download/v0.4.3/audit-darwin-386) / [amd64](https://github.com/genuinetools/audit/releases/download/v0.4.3/audit-darwin-amd64)
-- **freebsd** [386](https://github.com/genuinetools/audit/releases/download/v0.4.3/audit-freebsd-386) / [amd64](https://github.com/genuinetools/audit/releases/download/v0.4.3/audit-freebsd-amd64)
-- **linux** [386](https://github.com/genuinetools/audit/releases/download/v0.4.3/audit-linux-386) / [amd64](https://github.com/genuinetools/audit/releases/download/v0.4.3/audit-linux-amd64) / [arm](https://github.com/genuinetools/audit/releases/download/v0.4.3/audit-linux-arm) / [arm64](https://github.com/genuinetools/audit/releases/download/v0.4.3/audit-linux-arm64)
-- **solaris** [amd64](https://github.com/genuinetools/audit/releases/download/v0.4.3/audit-solaris-amd64)
-- **windows** [386](https://github.com/genuinetools/audit/releases/download/v0.4.3/audit-windows-386) / [amd64](https://github.com/genuinetools/audit/releases/download/v0.4.3/audit-windows-amd64)
+For installation instructions from binaries please visit the [Releases Page](https://github.com/genuinetools/audit/releases).
 
 #### Via Go
 
-```bash
+```console
 $ go get github.com/genuinetools/audit
 ```
 

@@ -18,39 +18,39 @@ jobs:
       deploy:
         provider: releases
         file:
-          - cross/audit-linux-amd64.md5
-          - cross/audit-windows-386.sha256
-          - cross/audit-linux-arm
-          - cross/audit-darwin-amd64.md5
           - cross/audit-darwin-amd64
-          - cross/audit-solaris-amd64.md5
-          - cross/audit-linux-arm64.sha256
-          - cross/audit-linux-arm.sha256
-          - cross/audit-linux-386.sha256
+          - cross/audit-darwin-amd64.md5
+          - cross/audit-darwin-amd64.sha256
+          - cross/audit-darwin-386
           - cross/audit-darwin-386.md5
-          - cross/audit-windows-386.md5
+          - cross/audit-darwin-386.sha256
+          - cross/audit-freebsd-amd64
           - cross/audit-freebsd-amd64.md5
-          - cross/audit-linux-arm64.md5
-          - cross/audit-linux-arm64
           - cross/audit-freebsd-amd64.sha256
-          - cross/audit-freebsd-386.md5
-          - cross/audit-linux-amd64.sha256
-          - cross/audit-linux-386.md5
           - cross/audit-freebsd-386
+          - cross/audit-freebsd-386.md5
+          - cross/audit-freebsd-386.sha256
+          - cross/audit-linux-arm
+          - cross/audit-linux-arm.md5
+          - cross/audit-linux-arm.sha256
+          - cross/audit-linux-arm64
+          - cross/audit-linux-arm64.md5
+          - cross/audit-linux-arm64.sha256
+          - cross/audit-linux-amd64
+          - cross/audit-linux-amd64.md5
+          - cross/audit-linux-amd64.sha256
+          - cross/audit-linux-386
+          - cross/audit-linux-386.md5
+          - cross/audit-linux-386.sha256
+          - cross/audit-solaris-amd64
+          - cross/audit-solaris-amd64.md5
           - cross/audit-solaris-amd64.sha256
           - cross/audit-windows-amd64
           - cross/audit-windows-amd64.md5
           - cross/audit-windows-amd64.sha256
-          - cross/audit-linux-arm.md5
-          - cross/audit-darwin-386.sha256
-          - cross/audit-darwin-amd64.sha256
           - cross/audit-windows-386
-          - cross/audit-solaris-amd64
-          - cross/audit-darwin-386
-          - cross/audit-linux-386
-          - cross/audit-freebsd-amd64
-          - cross/audit-freebsd-386.sha256
-          - cross/audit-linux-amd64
+          - cross/audit-windows-386.md5
+          - cross/audit-windows-386.sha256
         skip_cleanup: true
         on:
           tags: true
