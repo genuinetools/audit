@@ -28,26 +28,20 @@ $ go get github.com/genuinetools/audit
 
 ```console
 $ audit -h
-                 _ _ _
-  __ _ _   _  __| (_) |_
- / _` | | | |/ _` | | __|
-| (_| | |_| | (_| | | |_
- \__,_|\__,_|\__,_|_|\__|
+audit -  Tool to audit what collaborators, hooks, and deploy keys are on your GitHub repositories.
 
- Auditing what collaborators, hooks, and deploy keys you have added on all your GitHub repositories.
- Version: v0.4.3
- Build: a55701b
+Usage: audit <command>
 
-  -d    run in debug mode
-  -owner
-        only audit repos the token owner owns
-  -repo string
-        specific repo to test (e.g. 'genuinetools/audit')
-  -token string
-        GitHub API token (or env var GITHUB_TOKEN)
-  -v    print version and exit (shorthand)
-  -version
-        print version and exit
+Flags:
+
+  -d      enable debug logging (default: false)
+  -owner  only audit repos the token owner owns (default: false)
+  -repo   specific repo to test (e.g. 'genuinetools/audit') (default: <none>)
+  -token  GitHub API token (or env var GITHUB_TOKEN)
+
+Commands:
+
+  version  Show the version information.
 ```
 
 ```console

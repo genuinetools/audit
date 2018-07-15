@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"net/http"
@@ -14,104 +15,95 @@ import (
 	"golang.org/x/oauth2"
 
 	"github.com/genuinetools/audit/version"
+	"github.com/genuinetools/pkg/cli"
 	"github.com/google/go-github/github"
 	"github.com/sirupsen/logrus"
-)
-
-const (
-	// BANNER is what is printed for help/info output.
-	BANNER = `                 _ _ _
-  __ _ _   _  __| (_) |_
- / _` + "`" + ` | | | |/ _` + "`" + ` | | __|
-| (_| | |_| | (_| | | |_
- \__,_|\__,_|\__,_|_|\__|
-
- Auditing what collaborators, hooks, and deploy keys you have added on all your GitHub repositories.
- Version: %s
- Build: %s
-
-`
 )
 
 var (
 	token string
 	repo  string
+	owner bool
 
 	debug bool
-	vrsn  bool
-	owner bool
 )
 
-func init() {
-	// parse flags
-	flag.StringVar(&token, "token", os.Getenv("GITHUB_TOKEN"), "GitHub API token (or env var GITHUB_TOKEN)")
-	flag.StringVar(&repo, "repo", "", "specific repo to test (e.g. 'genuinetools/audit')")
-
-	flag.BoolVar(&vrsn, "version", false, "print version and exit")
-	flag.BoolVar(&vrsn, "v", false, "print version and exit (shorthand)")
-	flag.BoolVar(&debug, "d", false, "run in debug mode")
-	flag.BoolVar(&owner, "owner", false, "only audit repos the token owner owns")
-
-	flag.Usage = func() {
-		fmt.Fprint(os.Stderr, fmt.Sprintf(BANNER, version.VERSION, version.GITCOMMIT))
-		flag.PrintDefaults()
-	}
-
-	flag.Parse()
-
-	if vrsn {
-		fmt.Printf("audit version %s, build %s", version.VERSION, version.GITCOMMIT)
-		os.Exit(0)
-	}
-
-	// set log level
-	if debug {
-		logrus.SetLevel(logrus.DebugLevel)
-	}
-
-	if token == "" {
-		usageAndExit("GitHub token cannot be empty.", 1)
-	}
-}
-
 func main() {
-	// On ^C, or SIGTERM handle exit.
-	signals := make(chan os.Signal, 0)
-	signal.Notify(signals, os.Interrupt)
-	signal.Notify(signals, syscall.SIGTERM)
-	ctx, cancel := context.WithCancel(context.Background())
-	go func() {
-		for sig := range signals {
-			cancel()
-			logrus.Infof("Received %s, exiting.", sig.String())
-			os.Exit(0)
-		}
-	}()
+	// Create a new cli program.
+	p := cli.NewProgram()
+	p.Name = "audit"
+	p.Description = "Tool to audit what collaborators, hooks, and deploy keys are on your GitHub repositories"
 
-	// Create the http client.
-	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: token},
-	)
-	tc := oauth2.NewClient(ctx, ts)
+	// Set the GitCommit and Version.
+	p.GitCommit = version.GITCOMMIT
+	p.Version = version.VERSION
 
-	// Create the github client.
-	client := github.NewClient(tc)
-	page := 1
-	perPage := 100
-	var affiliation string
-	if owner {
-		affiliation = "owner"
-	} else {
-		affiliation = "owner,collaborator,organization_member"
-	}
-	logrus.Debugf("Getting repositories...")
-	if err := getRepositories(ctx, client, page, perPage, affiliation, repo); err != nil {
-		if v, ok := err.(*github.RateLimitError); ok {
-			logrus.Fatalf("%s Limit: %d; Remaining: %d; Retry After: %s", v.Message, v.Rate.Limit, v.Rate.Remaining, time.Until(v.Rate.Reset.Time).String())
+	// Setup the global flags.
+	p.FlagSet = flag.NewFlagSet("global", flag.ExitOnError)
+	p.FlagSet.StringVar(&token, "token", os.Getenv("GITHUB_TOKEN"), "GitHub API token (or env var GITHUB_TOKEN)")
+	p.FlagSet.StringVar(&repo, "repo", "", "specific repo to test (e.g. 'genuinetools/audit')")
+	p.FlagSet.BoolVar(&owner, "owner", false, "only audit repos the token owner owns")
+	p.FlagSet.BoolVar(&debug, "d", false, "enable debug logging")
+
+	// Set the before function.
+	p.Before = func(ctx context.Context) error {
+		// Set the log level.
+		if debug {
+			logrus.SetLevel(logrus.DebugLevel)
 		}
 
-		logrus.Fatal(err)
+		if token == "" {
+			return errors.New("GitHub token cannot be empty")
+		}
+
+		return nil
 	}
+
+	// Set the main program action.
+	p.Action = func(ctx context.Context) error {
+		// On ^C, or SIGTERM handle exit.
+		signals := make(chan os.Signal, 0)
+		signal.Notify(signals, os.Interrupt)
+		signal.Notify(signals, syscall.SIGTERM)
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithCancel(ctx)
+		go func() {
+			for sig := range signals {
+				cancel()
+				logrus.Infof("Received %s, exiting.", sig.String())
+				os.Exit(0)
+			}
+		}()
+
+		// Create the http client.
+		ts := oauth2.StaticTokenSource(
+			&oauth2.Token{AccessToken: token},
+		)
+		tc := oauth2.NewClient(ctx, ts)
+
+		// Create the github client.
+		client := github.NewClient(tc)
+		page := 1
+		perPage := 100
+		var affiliation string
+		if owner {
+			affiliation = "owner"
+		} else {
+			affiliation = "owner,collaborator,organization_member"
+		}
+		logrus.Debugf("Getting repositories...")
+		if err := getRepositories(ctx, client, page, perPage, affiliation, repo); err != nil {
+			if v, ok := err.(*github.RateLimitError); ok {
+				logrus.Fatalf("%s Limit: %d; Remaining: %d; Retry After: %s", v.Message, v.Rate.Limit, v.Rate.Remaining, time.Until(v.Rate.Reset.Time).String())
+			}
+
+			logrus.Fatal(err)
+		}
+		return nil
+	}
+
+	// Run our program.
+	p.Run()
 }
 
 func getRepositories(ctx context.Context, client *github.Client, page, perPage int, affiliation string, searchRepo string) error {
