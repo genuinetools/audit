@@ -22,12 +22,24 @@ import (
 
 var (
 	token string
-	org   string
+	orgs  stringSlice
 	repo  string
 	owner bool
 
 	debug bool
 )
+
+// stringSlice is a slice of strings
+type stringSlice []string
+
+// implement the flag interface for stringSlice
+func (s *stringSlice) String() string {
+	return fmt.Sprintf("%s", *s)
+}
+func (s *stringSlice) Set(value string) error {
+	*s = append(*s, value)
+	return nil
+}
 
 func main() {
 	// Create a new cli program.
@@ -42,7 +54,7 @@ func main() {
 	// Setup the global flags.
 	p.FlagSet = flag.NewFlagSet("global", flag.ExitOnError)
 	p.FlagSet.StringVar(&token, "token", os.Getenv("GITHUB_TOKEN"), "GitHub API token (or env var GITHUB_TOKEN)")
-	p.FlagSet.StringVar(&org, "org", "", "specific org to check (e.g. 'genuinetools')")
+	p.FlagSet.Var(&orgs, "orgs", "specific orgs to check (e.g. 'genuinetools')")
 	p.FlagSet.StringVar(&repo, "repo", "", "specific repo to test (e.g. 'genuinetools/audit')")
 	p.FlagSet.BoolVar(&owner, "owner", false, "only audit repos the token owner owns")
 	p.FlagSet.BoolVar(&debug, "d", false, "enable debug logging")
@@ -58,7 +70,7 @@ func main() {
 			return errors.New("GitHub token cannot be empty")
 		}
 
-		if owner && len(repo) > 0 {
+		if owner && len(orgs) > 0 {
 			return errors.New("Cannot filter by organization while restricting to repos the token owner owns")
 		}
 
@@ -98,7 +110,7 @@ func main() {
 			affiliation = "owner,collaborator,organization_member"
 		}
 		logrus.Debugf("Getting repositories...")
-		if err := getRepositories(ctx, client, page, perPage, affiliation, repo, org); err != nil {
+		if err := getRepositories(ctx, client, page, perPage, affiliation, repo, orgs); err != nil {
 			if v, ok := err.(*github.RateLimitError); ok {
 				logrus.Fatalf("%s Limit: %d; Remaining: %d; Retry After: %s", v.Message, v.Rate.Limit, v.Rate.Remaining, time.Until(v.Rate.Reset.Time).String())
 			}
@@ -112,7 +124,7 @@ func main() {
 	p.Run()
 }
 
-func getRepositories(ctx context.Context, client *github.Client, page, perPage int, affiliation string, searchRepo string, org string) error {
+func getRepositories(ctx context.Context, client *github.Client, page, perPage int, affiliation string, searchRepo string, orgs stringSlice) error {
 
 	var (
 		repos []*github.Repository
@@ -121,22 +133,13 @@ func getRepositories(ctx context.Context, client *github.Client, page, perPage i
 	)
 	if len(searchRepo) < 1 {
 		// Get all the repos.
-		if len(org) < 1 {
-			repos, resp, err = client.Repositories.List(ctx, "", &github.RepositoryListOptions{
-				Affiliation: affiliation,
-				ListOptions: github.ListOptions{
-					Page:    page,
-					PerPage: perPage,
-				},
-			})
-		} else {
-			repos, resp, err = client.Repositories.ListByOrg(ctx, org, &github.RepositoryListByOrgOptions{
-				ListOptions: github.ListOptions{
-					Page:    page,
-					PerPage: perPage,
-				},
-			})
-		}
+		repos, resp, err = client.Repositories.List(ctx, "", &github.RepositoryListOptions{
+			Affiliation: affiliation,
+			ListOptions: github.ListOptions{
+				Page:    page,
+				PerPage: perPage,
+			},
+		})
 		if err != nil {
 			return err
 		}
@@ -149,6 +152,9 @@ func getRepositories(ctx context.Context, client *github.Client, page, perPage i
 	}
 
 	for _, repo := range repos {
+		if !in(orgs, *repo.Owner.Login) {
+			continue
+		}
 		logrus.Debugf("Handling repo %s...", repo.GetFullName())
 		if err := handleRepo(ctx, client, repo); err != nil {
 			if len(searchRepo) > 0 {
@@ -165,7 +171,7 @@ func getRepositories(ctx context.Context, client *github.Client, page, perPage i
 	}
 
 	page = resp.NextPage
-	return getRepositories(ctx, client, page, perPage, affiliation, searchRepo, org)
+	return getRepositories(ctx, client, page, perPage, affiliation, searchRepo, orgs)
 }
 
 func searchRepos(ctx context.Context, client *github.Client, searchRepo string) ([]*github.Repository, error) {
@@ -355,6 +361,15 @@ func handleRepo(ctx context.Context, client *github.Client, repo *github.Reposit
 	fmt.Printf("%s--\n\n", output)
 
 	return nil
+}
+
+func in(a stringSlice, s string) bool {
+	for _, b := range a {
+		if b == s {
+			return true
+		}
+	}
+	return false
 }
 
 func usageAndExit(message string, exitCode int) {
