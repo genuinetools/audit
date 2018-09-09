@@ -22,6 +22,7 @@ import (
 
 var (
 	token string
+	org   string
 	repo  string
 	owner bool
 
@@ -41,6 +42,7 @@ func main() {
 	// Setup the global flags.
 	p.FlagSet = flag.NewFlagSet("global", flag.ExitOnError)
 	p.FlagSet.StringVar(&token, "token", os.Getenv("GITHUB_TOKEN"), "GitHub API token (or env var GITHUB_TOKEN)")
+	p.FlagSet.StringVar(&org, "org", "", "specific org to check (e.g. 'genuinetools')")
 	p.FlagSet.StringVar(&repo, "repo", "", "specific repo to test (e.g. 'genuinetools/audit')")
 	p.FlagSet.BoolVar(&owner, "owner", false, "only audit repos the token owner owns")
 	p.FlagSet.BoolVar(&debug, "d", false, "enable debug logging")
@@ -54,6 +56,10 @@ func main() {
 
 		if token == "" {
 			return errors.New("GitHub token cannot be empty")
+		}
+
+		if owner && len(repo) > 0 {
+			return errors.New("Cannot filter by organization while restricting to repos the token owner owns")
 		}
 
 		return nil
@@ -92,7 +98,7 @@ func main() {
 			affiliation = "owner,collaborator,organization_member"
 		}
 		logrus.Debugf("Getting repositories...")
-		if err := getRepositories(ctx, client, page, perPage, affiliation, repo); err != nil {
+		if err := getRepositories(ctx, client, page, perPage, affiliation, repo, org); err != nil {
 			if v, ok := err.(*github.RateLimitError); ok {
 				logrus.Fatalf("%s Limit: %d; Remaining: %d; Retry After: %s", v.Message, v.Rate.Limit, v.Rate.Remaining, time.Until(v.Rate.Reset.Time).String())
 			}
@@ -106,14 +112,7 @@ func main() {
 	p.Run()
 }
 
-func getRepositories(ctx context.Context, client *github.Client, page, perPage int, affiliation string, searchRepo string) error {
-	opt := &github.RepositoryListOptions{
-		Affiliation: affiliation,
-		ListOptions: github.ListOptions{
-			Page:    page,
-			PerPage: perPage,
-		},
-	}
+func getRepositories(ctx context.Context, client *github.Client, page, perPage int, affiliation string, searchRepo string, org string) error {
 
 	var (
 		repos []*github.Repository
@@ -122,7 +121,22 @@ func getRepositories(ctx context.Context, client *github.Client, page, perPage i
 	)
 	if len(searchRepo) < 1 {
 		// Get all the repos.
-		repos, resp, err = client.Repositories.List(ctx, "", opt)
+		if len(org) < 1 {
+			repos, resp, err = client.Repositories.List(ctx, "", &github.RepositoryListOptions{
+				Affiliation: affiliation,
+				ListOptions: github.ListOptions{
+					Page:    page,
+					PerPage: perPage,
+				},
+			})
+		} else {
+			repos, resp, err = client.Repositories.ListByOrg(ctx, org, &github.RepositoryListByOrgOptions{
+				ListOptions: github.ListOptions{
+					Page:    page,
+					PerPage: perPage,
+				},
+			})
+		}
 		if err != nil {
 			return err
 		}
@@ -151,7 +165,7 @@ func getRepositories(ctx context.Context, client *github.Client, page, perPage i
 	}
 
 	page = resp.NextPage
-	return getRepositories(ctx, client, page, perPage, affiliation, searchRepo)
+	return getRepositories(ctx, client, page, perPage, affiliation, searchRepo, org)
 }
 
 func searchRepos(ctx context.Context, client *github.Client, searchRepo string) ([]*github.Repository, error) {
