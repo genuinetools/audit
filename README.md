@@ -36,6 +36,7 @@ Flags:
 
   -d      enable debug logging (default: false)
   -owner  only audit repos the token owner owns (default: false)
+  -orgs   specific orgs to check (e.g. 'genuinetools')
   -repo   specific repo to test (e.g. 'genuinetools/audit') (default: <none>)
   -token  GitHub API token (or env var GITHUB_TOKEN)
 
