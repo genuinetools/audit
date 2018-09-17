@@ -101,6 +101,20 @@ func main() {
 
 		// Create the github client.
 		client := github.NewClient(tc)
+		
+		// Get the current user
+		user, _, err := client.Users.Get(ctx, "")
+		if err != nil {
+			if v, ok := err.(*github.RateLimitError); ok {
+				return fmt.Errorf("%s Limit: %d; Remaining: %d; Retry After: %s", v.Message, v.Rate.Limit, v.Rate.Remaining, time.Until(v.Rate.Reset.Time).String())
+			}
+
+			return fmt.Errorf("Getting user failed: %v", err)
+		}
+		username := *user.Login
+		// add the current user to orgs
+		orgs = append(orgs, username)
+		
 		page := 1
 		perPage := 100
 		var affiliation string
