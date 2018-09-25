@@ -58,6 +58,7 @@ func main() {
 	p.FlagSet.StringVar(&repo, "repo", "", "specific repo to test (e.g. 'genuinetools/audit')")
 	p.FlagSet.BoolVar(&owner, "owner", false, "only audit repos the token owner owns")
 	p.FlagSet.BoolVar(&debug, "d", false, "enable debug logging")
+	p.FlagSet.BoolVar(&debug, "debug", false, "enable debug logging")
 
 	// Set the before function.
 	p.Before = func(ctx context.Context) error {
@@ -78,7 +79,7 @@ func main() {
 	}
 
 	// Set the main program action.
-	p.Action = func(ctx context.Context) error {
+	p.Action = func(ctx context.Context, args []string) error {
 		// On ^C, or SIGTERM handle exit.
 		signals := make(chan os.Signal, 0)
 		signal.Notify(signals, os.Interrupt)
@@ -101,7 +102,7 @@ func main() {
 
 		// Create the github client.
 		client := github.NewClient(tc)
-		
+
 		// Get the current user
 		user, _, err := client.Users.Get(ctx, "")
 		if err != nil {
@@ -114,7 +115,7 @@ func main() {
 		username := *user.Login
 		// add the current user to orgs
 		orgs = append(orgs, username)
-		
+
 		page := 1
 		perPage := 100
 		var affiliation string
@@ -302,7 +303,7 @@ func handleRepo(ctx context.Context, client *github.Client, repo *github.Reposit
 		for _, c := range collabs {
 			userTeams := []github.Team{}
 			for _, t := range teams {
-				isMember, resp, err := client.Organizations.GetTeamMembership(ctx, t.GetID(), c.GetLogin())
+				isMember, resp, err := client.Teams.GetTeamMembership(ctx, t.GetID(), c.GetLogin())
 				if resp.StatusCode != http.StatusNotFound && resp.StatusCode != http.StatusForbidden && err == nil && isMember.GetState() == "active" {
 					userTeams = append(userTeams, *t)
 				}
