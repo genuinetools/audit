@@ -16,6 +16,11 @@ to be protected. Pepper even has settings for organizations and a dry-run flag f
 
 <!-- toc -->
 
+- [Installation](#installation)
+    + [Binaries](#binaries)
+    + [Via Go](#via-go)
+- [Usage](#usage)
+
 <!-- tocstop -->
 
 ## Installation
