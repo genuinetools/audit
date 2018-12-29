@@ -12,6 +12,12 @@ Because nobody has enough RAM in their brain to remember this stuff for 100+ rep
 Check out [genuinetools/pepper](https://github.com/genuinetools/pepper) for setting all your GitHub repo's master branches
 to be protected. Pepper even has settings for organizations and a dry-run flag for the paranoid.
 
+**Table of Contents**
+
+<!-- toc -->
+
+<!-- tocstop -->
+
 ## Installation
 
 #### Binaries
