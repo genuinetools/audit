@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -21,10 +22,11 @@ import (
 )
 
 var (
-	token string
-	orgs  stringSlice
-	repo  string
-	owner bool
+	token   string
+	orgs    stringSlice
+	repo    string
+	owner   bool
+	jsonOut bool
 
 	debug bool
 )
@@ -57,6 +59,7 @@ func main() {
 	p.FlagSet.Var(&orgs, "orgs", "specific orgs to check (e.g. 'genuinetools')")
 	p.FlagSet.StringVar(&repo, "repo", "", "specific repo to test (e.g. 'genuinetools/audit')")
 	p.FlagSet.BoolVar(&owner, "owner", false, "only audit repos the token owner owns")
+	p.FlagSet.BoolVar(&jsonOut, "json", false, "output as json")
 	p.FlagSet.BoolVar(&debug, "d", false, "enable debug logging")
 	p.FlagSet.BoolVar(&debug, "debug", false, "enable debug logging")
 
@@ -243,6 +246,202 @@ func getRepositories(ctx context.Context, restClient *github.Client, graphqlClie
 	return nil
 }
 
+type outCollaborator struct {
+	Login string   `json:"login"`
+	Teams []string `json:"teams"`
+}
+
+type outCollaborators struct {
+	TotalCount int               `json:"totalCount"`
+	Admin      []outCollaborator `json:"admin"`
+	Write      []outCollaborator `json:"write"`
+	Read       []outCollaborator `json:"read"`
+}
+
+type outDeployKey struct {
+	Title    string `json:"title"`
+	ReadOnly bool   `json:"readOnly"`
+	URL      string `json:"url"`
+}
+
+type outHook struct {
+	Name   string `json:"name"`
+	Active bool   `json:"active"`
+	URL    string `json:"url"`
+}
+
+type output struct {
+	Name                string           `json:"name"`
+	Collaborators       outCollaborators `json:"collaborators"`
+	DeployKeys          []outDeployKey   `json:"deployKeys"`
+	Hooks               []outHook        `json:"hooks"`
+	ProtectedBranches   []string         `json:"protectedBranches"`
+	UnprotectedBranches []string         `json:"unprotectedBranches"`
+	MergeMethods        []string         `json:"mergeMethods"`
+}
+
+func audit(ctx context.Context, restClient *github.Client, repo ghrepo, teams []*github.Team, ghhooks []*github.Hook) output {
+	admin := []outCollaborator{}
+	write := []outCollaborator{}
+	read := []outCollaborator{}
+	deployKeys := []outDeployKey{}
+	hooks := []outHook{}
+	protectedBranches := []string{}
+	unprotectedBranches := []string{}
+	mergeMethods := []string{}
+	if repo.Collaborators.TotalCount > 1 {
+		logrus.Debugf("Executing REST query to check collaborators' team memberships for %s", repo.NameWithOwner)
+		for _, c := range repo.Collaborators.Edges {
+			userTeams := []github.Team{}
+			for _, t := range teams {
+				isMember, resp, err := restClient.Teams.GetTeamMembership(ctx, t.GetID(), c.Node.Login)
+				if resp.StatusCode != http.StatusNotFound && resp.StatusCode != http.StatusForbidden && err == nil && isMember.GetState() == "active" {
+					userTeams = append(userTeams, *t)
+				}
+			}
+
+			switch c.Permission {
+			case "ADMIN":
+				permTeams := []string{}
+				for _, t := range userTeams {
+					if t.GetPermission() == "admin" {
+						permTeams = append(permTeams, t.GetName())
+					}
+				}
+				admin = append(admin, outCollaborator{c.Node.Login, permTeams})
+			case "WRITE":
+				permTeams := []string{}
+				for _, t := range userTeams {
+					if t.GetPermission() == "push" {
+						permTeams = append(permTeams, t.GetName())
+					}
+				}
+				write = append(write, outCollaborator{c.Node.Login, permTeams})
+			case "READ":
+				permTeams := []string{}
+				for _, t := range userTeams {
+					if t.GetPermission() == "pull" {
+						permTeams = append(permTeams, t.GetName())
+					}
+				}
+				read = append(read, outCollaborator{c.Node.Login, permTeams})
+			}
+		}
+	}
+
+	if repo.DeployKeys.TotalCount > 0 {
+		for _, k := range repo.DeployKeys.Nodes {
+			keyURL, err := buildDeployKeyURL(repo.Owner.Login, repo.Name, k.ID)
+			if err != nil {
+				deployKeys = append(deployKeys, outDeployKey{k.Title, k.ReadOnly, ""})
+			} else {
+				deployKeys = append(deployKeys, outDeployKey{k.Title, k.ReadOnly, keyURL})
+			}
+		}
+	}
+
+	if len(ghhooks) > 0 {
+		for _, h := range ghhooks {
+			hooks = append(hooks, outHook{h.GetName(), h.GetActive(), h.GetURL()})
+		}
+	}
+
+	if repo.BranchProtectionRules.TotalCount > 0 {
+		for _, r := range repo.BranchProtectionRules.Nodes {
+			protectedBranches = append(protectedBranches, r.Pattern)
+		}
+	}
+
+	if repo.Refs.TotalCount > 0 {
+		for _, r := range repo.Refs.Nodes {
+			unprotectedBranches = append(unprotectedBranches, r.Name)
+		}
+	}
+
+	if repo.MergeCommitAllowed {
+		mergeMethods = append(mergeMethods, "mergeCommit")
+	}
+	if repo.SquashMergeAllowed {
+		mergeMethods = append(mergeMethods, "squash")
+	}
+	if repo.RebaseMergeAllowed {
+		mergeMethods = append(mergeMethods, "rebase")
+	}
+
+	return output{
+		repo.NameWithOwner,
+		outCollaborators{repo.Collaborators.TotalCount, admin, write, read},
+		deployKeys,
+		hooks,
+		protectedBranches,
+		unprotectedBranches,
+		mergeMethods,
+	}
+}
+
+func outputText(o output) {
+	text := fmt.Sprintf("%s -> \n", o.Name)
+
+	if o.Collaborators.TotalCount > 1 {
+		write := []string{}
+		read := []string{}
+		admin := []string{}
+		for _, c := range o.Collaborators.Admin {
+			admin = append(admin, fmt.Sprintf("\t\t\t%s (teams: %s)", c.Login, strings.Join(c.Teams, ", ")))
+		}
+		for _, c := range o.Collaborators.Write {
+			write = append(write, fmt.Sprintf("\t\t\t%s", c.Login))
+		}
+		for _, c := range o.Collaborators.Read {
+			read = append(read, fmt.Sprintf("\t\t\t%s", c.Login))
+		}
+		text += fmt.Sprintf("\tCollaborators (%d):\n", o.Collaborators.TotalCount)
+		text += fmt.Sprintf("\t\tAdmin (%d):\n%s\n", len(admin), strings.Join(admin, "\n"))
+		text += fmt.Sprintf("\t\tWrite (%d):\n%s\n", len(write), strings.Join(write, "\n"))
+		text += fmt.Sprintf("\t\tRead (%d):\n%s\n", len(read), strings.Join(read, "\n"))
+	}
+
+	if len(o.DeployKeys) > 0 {
+		kstr := []string{}
+		for _, k := range o.DeployKeys {
+			if k.URL == "" {
+				kstr = append(kstr, fmt.Sprintf("\t\t%s - ro:%t", k.Title, k.ReadOnly))
+			} else {
+				kstr = append(kstr, fmt.Sprintf("\t\t%s - ro:%t (%s)", k.Title, k.ReadOnly, k.URL))
+			}
+		}
+		text += fmt.Sprintf("\tKeys (%d):\n%s\n", len(kstr), strings.Join(kstr, "\n"))
+	}
+
+	if len(o.Hooks) > 0 {
+		hstr := []string{}
+		for _, h := range o.Hooks {
+			hstr = append(hstr, fmt.Sprintf("\t\t%s - active:%t (%s)", h.Name, h.Active, h.URL))
+		}
+		text += fmt.Sprintf("\tHooks (%d):\n%s\n", len(hstr), strings.Join(hstr, "\n"))
+	}
+
+	if len(o.ProtectedBranches) > 0 {
+		text += fmt.Sprintf("\tProtected Branches (%d): %s\n", len(o.ProtectedBranches), strings.Join(o.ProtectedBranches, ", "))
+	}
+
+	if len(o.UnprotectedBranches) > 0 {
+		text += fmt.Sprintf("\tUnprotected Branches (%d): %s\n", len(o.UnprotectedBranches), strings.Join(o.UnprotectedBranches, ", "))
+	}
+	text += fmt.Sprintf("\tMerge Methods: %s\n", strings.Join(o.MergeMethods, " "))
+
+	logrus.Debugf("Printing details for %s", o.Name)
+
+	fmt.Printf("%s--\n\n", text)
+}
+
+func outputJSON(o output) {
+	b, err := json.Marshal(o)
+	if err == nil {
+		fmt.Printf("%s\n", b)
+	}
+}
+
 // handleRepo will return nil error if the user does not have access to something.
 func handleRepo(ctx context.Context, restClient *github.Client, repo ghrepo) error {
 	opt := &github.ListOptions{
@@ -280,96 +479,12 @@ func handleRepo(ctx context.Context, restClient *github.Client, repo ghrepo) err
 		return nil
 	}
 
-	output := fmt.Sprintf("%s -> \n", repo.NameWithOwner)
-
-	if repo.Collaborators.TotalCount > 1 {
-		push := []string{}
-		pull := []string{}
-		admin := []string{}
-		logrus.Debugf("Executing REST query to check collaborators' team memberships for %s", repo.NameWithOwner)
-		for _, c := range repo.Collaborators.Edges {
-			userTeams := []github.Team{}
-			for _, t := range teams {
-				isMember, resp, err := restClient.Teams.GetTeamMembership(ctx, t.GetID(), c.Node.Login)
-				if resp.StatusCode != http.StatusNotFound && resp.StatusCode != http.StatusForbidden && err == nil && isMember.GetState() == "active" {
-					userTeams = append(userTeams, *t)
-				}
-			}
-
-			switch c.Permission {
-			case "ADMIN":
-				permTeams := []string{}
-				for _, t := range userTeams {
-					if t.GetPermission() == "admin" {
-						permTeams = append(permTeams, t.GetName())
-					}
-				}
-				admin = append(admin, fmt.Sprintf("\t\t\t%s (teams: %s)", c.Node.Login, strings.Join(permTeams, ", ")))
-			case "WRITE":
-				push = append(push, fmt.Sprintf("\t\t\t%s", c.Node.Login))
-			case "READ":
-				pull = append(pull, fmt.Sprintf("\t\t\t%s", c.Node.Login))
-			}
-		}
-		output += fmt.Sprintf("\tCollaborators (%d):\n", repo.Collaborators.TotalCount)
-		output += fmt.Sprintf("\t\tAdmin (%d):\n%s\n", len(admin), strings.Join(admin, "\n"))
-		output += fmt.Sprintf("\t\tWrite (%d):\n%s\n", len(push), strings.Join(push, "\n"))
-		output += fmt.Sprintf("\t\tRead (%d):\n%s\n", len(pull), strings.Join(pull, "\n"))
+	output := audit(ctx, restClient, repo, teams, hooks)
+	if jsonOut {
+		outputJSON(output)
+	} else {
+		outputText(output)
 	}
-
-	if repo.DeployKeys.TotalCount > 0 {
-		kstr := []string{}
-		for _, k := range repo.DeployKeys.Nodes {
-			keyURL, err := buildDeployKeyURL(repo.Owner.Login, repo.Name, k.ID)
-			if err != nil {
-				kstr = append(kstr, fmt.Sprintf("\t\t%s - ro:%t", k.Title, k.ReadOnly))
-			} else {
-				kstr = append(kstr, fmt.Sprintf("\t\t%s - ro:%t (%s)", k.Title, k.ReadOnly, keyURL))
-			}
-		}
-		output += fmt.Sprintf("\tKeys (%d):\n%s\n", repo.DeployKeys.TotalCount, strings.Join(kstr, "\n"))
-	}
-
-	if len(hooks) > 0 {
-		hstr := []string{}
-		for _, h := range hooks {
-			hstr = append(hstr, fmt.Sprintf("\t\t%s - active:%t (%s)", h.GetName(), h.GetActive(), h.GetURL()))
-		}
-		output += fmt.Sprintf("\tHooks (%d):\n%s\n", len(hstr), strings.Join(hstr, "\n"))
-	}
-
-	if repo.BranchProtectionRules.TotalCount > 0 {
-		protectedBranches := []string{}
-		for _, r := range repo.BranchProtectionRules.Nodes {
-			protectedBranches = append(protectedBranches, r.Pattern)
-		}
-		output += fmt.Sprintf("\tProtected Branches (%d): %s\n", len(protectedBranches), strings.Join(protectedBranches, ", "))
-	}
-
-	if repo.Refs.TotalCount > 0 {
-		unprotectedBranches := []string{}
-		for _, r := range repo.Refs.Nodes {
-			unprotectedBranches = append(unprotectedBranches, r.Name)
-		}
-		output += fmt.Sprintf("\tUnprotected Branches (%d): %s\n", len(unprotectedBranches), strings.Join(unprotectedBranches, ", "))
-	}
-
-	mergeMethods := "\tMerge Methods:"
-	if repo.MergeCommitAllowed {
-		mergeMethods += " mergeCommit"
-	}
-	if repo.SquashMergeAllowed {
-		mergeMethods += " squash"
-	}
-	if repo.RebaseMergeAllowed {
-		mergeMethods += " rebase"
-	}
-	output += mergeMethods + "\n"
-
-	logrus.Debugf("Printing details for %s", repo.NameWithOwner)
-
-	fmt.Printf("%s--\n\n", output)
-
 	return nil
 }
 
