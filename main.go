@@ -72,7 +72,7 @@ func main() {
 		}
 
 		if owner && len(orgs) > 0 {
-			return errors.New("Cannot filter by organization while restricting to repos the token owner owns")
+			return errors.New("cannot filter by organization while restricting to repos the token owner owns")
 		}
 
 		return nil
@@ -81,7 +81,7 @@ func main() {
 	// Set the main program action.
 	p.Action = func(ctx context.Context, args []string) error {
 		// On ^C, or SIGTERM handle exit.
-		signals := make(chan os.Signal, 0)
+		signals := make(chan os.Signal)
 		signal.Notify(signals, os.Interrupt)
 		signal.Notify(signals, syscall.SIGTERM)
 		var cancel context.CancelFunc
@@ -115,7 +115,7 @@ func main() {
 		if err := graphqlClient.Execute(GQLRequest{
 			Query: queryGetLogin,
 		}, &respData, nil); err != nil {
-			return fmt.Errorf("Getting user failed: %v", err)
+			return fmt.Errorf("getting user failed: %v", err)
 		}
 		username := respData["viewer"]["login"]
 		logrus.Debugf("current user is %s", username)
@@ -371,25 +371,6 @@ func handleRepo(ctx context.Context, restClient *github.Client, repo ghrepo) err
 	fmt.Printf("%s--\n\n", output)
 
 	return nil
-}
-
-func in(a stringSlice, s string) bool {
-	for _, b := range a {
-		if b == s {
-			return true
-		}
-	}
-	return false
-}
-
-func usageAndExit(message string, exitCode int) {
-	if message != "" {
-		fmt.Fprintf(os.Stderr, message)
-		fmt.Fprintf(os.Stderr, "\n\n")
-	}
-	flag.Usage()
-	fmt.Fprintf(os.Stderr, "\n")
-	os.Exit(exitCode)
 }
 
 func buildDeployKeyURL(owner, name, id string) (string, error) {

@@ -274,10 +274,6 @@ type ghrepo struct {
 	Collaborators         collaborators    `json:"collaborators"`
 }
 
-type stargazers struct {
-	TotalCount int `json:"totalCount"`
-}
-
 type countNodeName struct {
 	TotalCount int           `json:"totalCount"`
 	Nodes      []nodeElement `json:"nodes"`
