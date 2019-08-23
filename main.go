@@ -285,6 +285,7 @@ func handleRepo(ctx context.Context, restClient *github.Client, repo ghrepo) err
 	if repo.Collaborators.TotalCount > 1 {
 		push := []string{}
 		pull := []string{}
+		maintain := []string{}
 		admin := []string{}
 		logrus.Debugf("Executing REST query to check collaborators' team memberships for %s", repo.NameWithOwner)
 		for _, c := range repo.Collaborators.Edges {
@@ -300,11 +301,19 @@ func handleRepo(ctx context.Context, restClient *github.Client, repo ghrepo) err
 			case "ADMIN":
 				permTeams := []string{}
 				for _, t := range userTeams {
-					if t.GetPermission() == "admin" {
-						permTeams = append(permTeams, t.GetName())
+					if t.GetPermission() == "push" {
+						permTeams = append(permTeams, t.GetSlug())
 					}
 				}
 				admin = append(admin, fmt.Sprintf("\t\t\t%s (teams: %s)", c.Node.Login, strings.Join(permTeams, ", ")))
+			case "MAINTAIN":
+				permTeams := []string{}
+				for _, t := range userTeams {
+					if t.GetPermission() == "push" {
+						permTeams = append(permTeams, t.GetSlug())
+					}
+				}
+				maintain = append(maintain, fmt.Sprintf("\t\t\t%s (teams: %s)", c.Node.Login, strings.Join(permTeams, ", ")))
 			case "WRITE":
 				push = append(push, fmt.Sprintf("\t\t\t%s", c.Node.Login))
 			case "READ":
@@ -313,6 +322,7 @@ func handleRepo(ctx context.Context, restClient *github.Client, repo ghrepo) err
 		}
 		output += fmt.Sprintf("\tCollaborators (%d):\n", repo.Collaborators.TotalCount)
 		output += fmt.Sprintf("\t\tAdmin (%d):\n%s\n", len(admin), strings.Join(admin, "\n"))
+		output += fmt.Sprintf("\t\tMaintain (%d):\n%s\n", len(maintain), strings.Join(maintain, "\n"))
 		output += fmt.Sprintf("\t\tWrite (%d):\n%s\n", len(push), strings.Join(push, "\n"))
 		output += fmt.Sprintf("\t\tRead (%d):\n%s\n", len(pull), strings.Join(pull, "\n"))
 	}
