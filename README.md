@@ -9,8 +9,8 @@ you have added on all your GitHub repositories. This also scans all an
 organization's repos you have permission to view.
 Because nobody has enough RAM in their brain to remember this stuff for 100+ repos.
 
-Check out [genuinetools/pepper](https://github.com/genuinetools/pepper) for setting all your GitHub repo's master branches
-to be protected. Pepper even has settings for organizations and a dry-run flag for the paranoid.
+**ARCHIVED IN FAVOR OF PEPPER:** Check out [genuinetools/pepper](https://github.com/genuinetools/pepper).
+Pepper does everything `audit` did.
 
 **Table of Contents**
 
